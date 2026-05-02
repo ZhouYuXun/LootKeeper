@@ -4,7 +4,10 @@
   "version": "1.1",
   "description": "每天定時自動領取遊戲 VIP 禮包，支援補領、手動觸發、自訂時間與執行記錄。作者：墨染楓（瑤光聽雪）。",
   "permissions": ["alarms", "tabs", "storage"],
-  "host_permissions": ["https://www.swordofjustice.com/*"],
+  "host_permissions": [
+    "https://www.swordofjustice.com/*",
+    "https://api.github.com/*"
+  ],
   "background": {
     "service_worker": "background.js"
   },

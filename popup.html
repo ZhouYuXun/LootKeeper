@@ -323,6 +323,33 @@
       font-family: monospace;
     }
 
+    /* 更新狀態 */
+    .update-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .update-status {
+      font-size: 11px;
+      color: #aaa;
+      flex: 1;
+    }
+    .update-status.up-to-date { color: #1a7a1a; }
+    .update-status.has-update { color: #e67e00; }
+    .update-status.error      { color: #c00; }
+    .update-link {
+      color: #e67e00;
+      font-weight: 600;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+    .version-text {
+      font-size: 12px;
+      color: #888;
+      font-family: monospace;
+    }
+
     /* 頁腳 */
     .footer {
       padding: 8px 14px;
@@ -334,6 +361,8 @@
       line-height: 1.6;
     }
     .footer strong { color: #999; }
+    .footer a { color: #bbb; text-decoration: none; }
+    .footer a:hover { color: #888; text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -423,6 +452,21 @@
       </div>
     </div>
 
+    <!-- 關於 -->
+    <div class="setting-group">
+      <div class="setting-section-label">關於</div>
+
+      <div class="setting-row">
+        <span class="setting-label">目前版本</span>
+        <span class="version-text" id="currentVersion">v1.1</span>
+      </div>
+
+      <div class="update-row">
+        <span class="update-status" id="updateStatus"></span>
+        <button id="checkUpdateBtn" class="btn btn-gray">檢查更新</button>
+      </div>
+    </div>
+
   </div>
 
   <!-- 贊助 tab -->
@@ -455,7 +499,8 @@
 
   <!-- 頁腳 -->
   <div class="footer">
-    <strong>LootKeeper</strong> · 作者：墨染楓（瑤光聽雪）
+    <strong>LootKeeper</strong> · 作者：墨染楓（瑤光聽雪）<br>
+    <a href="https://github.com/ZhouYuXun/LootKeeper/issues" target="_blank">意見回饋 / 回報問題</a>
   </div>
 
   <script src="popup.js"></script>

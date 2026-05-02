@@ -28,14 +28,20 @@
 
 ## 安裝
 
-### 1. 解壓縮
+### 1. 下載 ZIP
+
+前往 [Releases 頁面](https://github.com/ZhouYuXun/LootKeeper/releases)，點擊最新版本下方 **Assets** 區塊中的 `.zip` 檔案下載。
+
+> 不要使用 GitHub 首頁綠色「Code」按鈕裡的「Download ZIP」，那個下載的是原始碼而非發行版。
+
+### 2. 解壓縮
 
 將下載的 ZIP 解壓縮到一個**固定位置**（例如 `Documents\LootKeeper`）。
 
 > **重要：** 解壓後的資料夾不可刪除，瀏覽器會持續從此路徑讀取套件。
 > 若需搬移，請參閱[移動安裝資料夾](#移動安裝資料夾)。
 
-### 2. 載入擴充套件
+### 3. 載入擴充套件
 
 <details>
 <summary><b>Google Chrome</b></summary>
@@ -132,7 +138,12 @@
 
 ## 更新擴充套件
 
-前往 `chrome://extensions` 或 `edge://extensions`，點擊「LootKeeper」卡片上的「**重新載入**」即可。
+1. 點擊擴充套件圖示 → **設定 tab** → **檢查更新**
+2. 若有新版本，點擊連結前往下載最新 `.zip`
+3. 將新版 ZIP 內容**覆蓋**到原本的安裝資料夾（直接覆蓋，不需刪除舊檔案）
+4. 前往 `chrome://extensions` 或 `edge://extensions`，點擊「LootKeeper」卡片的「**重新載入**」圖示
+
+所有設定與記錄保存於瀏覽器儲存空間，覆蓋更新不會遺失。
 
 ---
 

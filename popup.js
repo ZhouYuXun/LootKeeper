@@ -182,6 +182,51 @@ document.getElementById("maxLogInput").addEventListener("change", (e) => {
     chrome.storage.local.set({ maxLogEntries: val });
 });
 
+// ── 檢查更新 ──────────────────────────────────────────
+const RELEASES_API = "https://api.github.com/repos/ZhouYuXun/LootKeeper/releases/latest";
+
+function parseVer(v) {
+    return v.replace(/^v/, "").split(".").map(Number);
+}
+function isNewer(tag, cur) {
+    const a = parseVer(tag), b = parseVer(cur);
+    for (let i = 0; i < Math.max(a.length, b.length); i++) {
+        if ((a[i] || 0) > (b[i] || 0)) return true;
+        if ((a[i] || 0) < (b[i] || 0)) return false;
+    }
+    return false;
+}
+
+function checkUpdate() {
+    const btn = document.getElementById("checkUpdateBtn");
+    const statusEl = document.getElementById("updateStatus");
+    btn.disabled = true;
+    statusEl.className = "update-status";
+    statusEl.textContent = "檢查中…";
+
+    fetch(RELEASES_API, { headers: { Accept: "application/vnd.github.v3+json" } })
+        .then(r => r.json())
+        .then(data => {
+            const tag = data.tag_name || "";
+            const cur = chrome.runtime.getManifest().version;
+            if (isNewer(tag, cur)) {
+                const url = data.html_url || "https://github.com/ZhouYuXun/LootKeeper/releases";
+                statusEl.innerHTML = `發現新版本 <a href="${url}" target="_blank" class="update-link">${tag} 前往下載</a>`;
+                statusEl.className = "update-status has-update";
+            } else {
+                statusEl.textContent = "已是最新版本";
+                statusEl.className = "update-status up-to-date";
+            }
+        })
+        .catch(() => {
+            statusEl.textContent = "網路錯誤，請稍後再試";
+            statusEl.className = "update-status error";
+        })
+        .finally(() => { btn.disabled = false; });
+}
+
+document.getElementById("checkUpdateBtn").addEventListener("click", checkUpdate);
+
 // ── 初始化 ────────────────────────────────────────────
 loadSettings();
 renderLog();
