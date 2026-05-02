@@ -237,5 +237,7 @@ document.getElementById("reloadExtBtn").addEventListener("click", () => {
 });
 
 // ── 初始化 ────────────────────────────────────────────
+document.getElementById("currentVersion").textContent =
+    "v" + chrome.runtime.getManifest().version;
 loadSettings();
 renderLog();
