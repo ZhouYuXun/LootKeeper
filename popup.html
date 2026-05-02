@@ -358,17 +358,22 @@
     }
     .btn-reload { background: #f0f0f0; color: #555; border: 1px dashed #ccc; }
     .btn-reload:hover { background: #e8e8e8; color: #333; }
+    .setup-prompt-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
     .setup-hint {
       font-size: 11px;
-      color: #999;
-      margin-bottom: 6px;
-      line-height: 1.6;
+      color: #bbb;
+      flex: 1;
     }
     .setup-hint code {
       font-family: monospace;
-      color: #555;
-      background: #f0f0f0;
-      padding: 1px 5px;
+      color: #999;
+      background: #f4f4f4;
+      padding: 1px 4px;
       border-radius: 3px;
     }
 
@@ -484,9 +489,9 @@
       </div>
 
       <!-- 未確認：提示先執行 setup.bat -->
-      <div id="setupPrompt">
-        <div class="setup-hint">更新功能需先執行 <code>setup.bat</code> 以登錄通訊協定</div>
-        <button id="setupDoneBtn" class="btn btn-gray" style="width:100%">我已執行 setup.bat</button>
+      <div id="setupPrompt" class="setup-prompt-row">
+        <span class="setup-hint">執行 <code>setup.bat</code> 後可使用一鍵更新</span>
+        <button id="setupDoneBtn" class="btn btn-gray">已執行</button>
       </div>
 
       <!-- 確認後：顯示更新控制項 -->
