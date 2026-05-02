@@ -183,13 +183,13 @@ document.getElementById("maxLogInput").addEventListener("change", (e) => {
 });
 
 // ── 檢查更新 ──────────────────────────────────────────
-const RELEASES_API = "https://api.github.com/repos/ZhouYuXun/LootKeeper/releases/latest";
+const REMOTE_MANIFEST = "https://raw.githubusercontent.com/ZhouYuXun/LootKeeper/main/manifest.json";
 
 function parseVer(v) {
-    return v.replace(/^v/, "").split(".").map(Number);
+    return String(v).split(".").map(Number);
 }
-function isNewer(tag, cur) {
-    const a = parseVer(tag), b = parseVer(cur);
+function isNewer(remote, local) {
+    const a = parseVer(remote), b = parseVer(local);
     for (let i = 0; i < Math.max(a.length, b.length); i++) {
         if ((a[i] || 0) > (b[i] || 0)) return true;
         if ((a[i] || 0) < (b[i] || 0)) return false;
@@ -205,13 +205,13 @@ function checkUpdate() {
     statusEl.textContent = "檢查中…";
     document.getElementById("updateActionRow").style.display = "none";
 
-    fetch(RELEASES_API, { headers: { Accept: "application/vnd.github.v3+json" } })
+    fetch(REMOTE_MANIFEST)
         .then(r => r.json())
         .then(data => {
-            const tag = data.tag_name || "";
-            const cur = chrome.runtime.getManifest().version;
-            if (isNewer(tag, cur)) {
-                statusEl.textContent = `發現新版本 ${tag}`;
+            const remote = data.version || "";
+            const local = chrome.runtime.getManifest().version;
+            if (isNewer(remote, local)) {
+                statusEl.textContent = `發現新版本 v${remote}`;
                 statusEl.className = "update-status has-update";
                 document.getElementById("updateActionRow").style.display = "";
             } else {

@@ -6,7 +6,7 @@
   "permissions": ["alarms", "tabs", "storage"],
   "host_permissions": [
     "https://www.swordofjustice.com/*",
-    "https://api.github.com/*"
+    "https://raw.githubusercontent.com/*"
   ],
   "background": {
     "service_worker": "background.js"
