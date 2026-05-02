@@ -133,13 +133,13 @@ function loadSettings() {
         document.getElementById("hourInput").value   = String(t.hour).padStart(2, "0");
         document.getElementById("minuteInput").value = String(t.minute).padStart(2, "0");
 
-        document.getElementById("autoCloseToggle").checked =
-            data.autoClose !== undefined ? data.autoClose : true;
+        const autoClose = data.autoClose !== undefined ? data.autoClose : false;
+        document.getElementById("autoCloseToggle").value = autoClose ? "on" : "off";
         const dailyEnabled = data.dailyEnabled !== undefined ? data.dailyEnabled : true;
-        document.getElementById("dailyToggle").checked = dailyEnabled;
+        document.getElementById("dailyToggle").value = dailyEnabled ? "on" : "off";
         syncTimeRowVisibility(dailyEnabled);
         const maxLog = data.maxLogEntries !== undefined ? data.maxLogEntries : 3;
-        document.getElementById("maxLogInput").value = maxLog;
+        document.getElementById("maxLogInput").value = String(maxLog);
         syncLogScroll(maxLog);
     });
 }
@@ -159,7 +159,7 @@ document.getElementById("saveTimeBtn").addEventListener("click", () => {
 
 // ── 設定：領取後關閉頁面 ──────────────────────────────
 document.getElementById("autoCloseToggle").addEventListener("change", (e) => {
-    chrome.storage.local.set({ autoClose: e.target.checked });
+    chrome.storage.local.set({ autoClose: e.target.value === "on" });
 });
 
 // ── 設定：每日自動領取 ────────────────────────────────
@@ -168,23 +168,18 @@ function syncTimeRowVisibility(enabled) {
 }
 
 document.getElementById("dailyToggle").addEventListener("change", (e) => {
-    syncTimeRowVisibility(e.target.checked);
-    chrome.storage.local.set({ dailyEnabled: e.target.checked }, () => {
+    const enabled = e.target.value === "on";
+    syncTimeRowVisibility(enabled);
+    chrome.storage.local.set({ dailyEnabled: enabled }, () => {
         chrome.runtime.sendMessage({ type: "reschedule" });
     });
 });
 
 // ── 設定：歷史紀錄筆數 ────────────────────────────────
-document.getElementById("saveMaxLogBtn").addEventListener("click", () => {
-    const val = Math.min(50, Math.max(1, parseInt(document.getElementById("maxLogInput").value) || 30));
-    document.getElementById("maxLogInput").value = val;
-    const maxLogStatus = document.getElementById("maxLogStatus");
-
-    chrome.storage.local.set({ maxLogEntries: val }, () => {
-        syncLogScroll(val);
-        maxLogStatus.textContent = "已儲存";
-        setTimeout(() => { maxLogStatus.textContent = ""; }, 2000);
-    });
+document.getElementById("maxLogInput").addEventListener("change", (e) => {
+    const val = parseInt(e.target.value) || 3;
+    syncLogScroll(val);
+    chrome.storage.local.set({ maxLogEntries: val });
 });
 
 // ── 初始化 ────────────────────────────────────────────

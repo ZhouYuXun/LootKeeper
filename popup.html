@@ -170,17 +170,36 @@
 
     /* ── 設定 tab ── */
     .setting-group {
-      padding: 10px 14px;
+      padding: 12px 14px;
       background: #fff;
       border-bottom: 1px solid #f0f0f0;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 14px;
+    }
+    .setting-section-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: #bbb;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding-bottom: 4px;
+      border-bottom: 1px solid #f4f4f4;
     }
     .setting-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
+    }
+    .setting-row.stacked {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 7px;
+    }
+    .setting-row.stacked .setting-label { margin-bottom: 0; }
+    #timeRow {
+      padding-left: 10px;
+      border-left: 2px solid #e0e0e0;
     }
     .setting-label {
       font-size: 12px;
@@ -195,75 +214,39 @@
     .time-inputs {
       display: flex;
       align-items: center;
-      gap: 5px;
+      gap: 6px;
     }
     .time-inputs input {
-      width: 40px;
+      width: 44px;
       text-align: center;
       border: 1px solid #ddd;
       border-radius: 4px;
-      padding: 3px 4px;
-      font-size: 13px;
+      padding: 4px 4px;
+      font-size: 14px;
       font-family: monospace;
       color: #222;
     }
     .time-inputs input:focus { outline: none; border-color: #1a7a1a; }
-    .time-sep { color: #888; font-weight: bold; }
+    .time-sep { color: #888; font-weight: bold; font-size: 14px; }
     .save-status {
       font-size: 11px;
       color: #1a7a1a;
       min-width: 36px;
-      text-align: right;
     }
 
-    /* Toggle 開關 */
-    .toggle {
-      position: relative;
-      display: inline-block;
-      width: 36px;
-      height: 20px;
+    /* 下拉選單 */
+    .setting-select {
+      height: 24px;
+      border: 1px solid #d8d8d8;
+      border-radius: 6px;
+      padding: 0 4px;
+      font-size: 12px;
+      color: #333;
+      background: #fff;
+      cursor: pointer;
       flex-shrink: 0;
     }
-    .toggle input { opacity: 0; width: 0; height: 0; }
-    .slider {
-      position: absolute;
-      cursor: pointer;
-      inset: 0;
-      background: #ccc;
-      border-radius: 20px;
-      transition: background 0.2s;
-    }
-    .slider::before {
-      content: "";
-      position: absolute;
-      width: 14px;
-      height: 14px;
-      left: 3px;
-      bottom: 3px;
-      background: #fff;
-      border-radius: 50%;
-      transition: transform 0.2s;
-    }
-    .toggle input:checked + .slider { background: #1a7a1a; }
-    .toggle input:checked + .slider::before { transform: translateX(16px); }
-
-    /* 數字輸入 */
-    .num-input-row {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-    .num-input-row input {
-      width: 52px;
-      text-align: center;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      padding: 3px 4px;
-      font-size: 13px;
-      font-family: monospace;
-      color: #222;
-    }
-    .num-input-row input:focus { outline: none; border-color: #1a7a1a; }
+    .setting-select:focus { outline: none; border-color: #1a7a1a; }
 
     /* ── 贊助 tab ── */
     .sponsor-content {
@@ -281,6 +264,7 @@
       font-size: 12px;
       color: #555;
       line-height: 1.7;
+      margin-top: 4px;
     }
     .sponsor-box {
       background: #fff;
@@ -306,8 +290,8 @@
     }
     .sponsor-qr {
       display: block;
-      width: 148px;
-      height: 148px;
+      width: 180px;
+      height: 180px;
       margin: 8px auto 4px;
       border-radius: 6px;
       border: 1px solid #e8e8e8;
@@ -315,7 +299,28 @@
     .sponsor-qr-hint {
       text-align: center;
       font-size: 11px;
+      color: #555;
+      font-weight: 500;
+      margin-top: 2px;
+    }
+    .sponsor-qr-sub {
+      text-align: center;
+      font-size: 10px;
+      color: #bbb;
+      margin-top: 3px;
+    }
+    .sponsor-account {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin: 0 0 6px;
+      font-size: 12px;
       color: #888;
+    }
+    .sponsor-account strong {
+      color: #333;
+      font-size: 13px;
+      font-family: monospace;
     }
 
     /* 頁腳 */
@@ -359,22 +364,23 @@
 
   <!-- 設定 tab -->
   <div id="tab-settings" class="tab-content">
-    <div class="setting-group">
 
-      <!-- 每日自動領取 -->
+    <!-- 排程 -->
+    <div class="setting-group">
+      <div class="setting-section-label">排程</div>
+
       <div class="setting-row">
         <span class="setting-label">
           每日自動領取
           <small>關閉後僅保留手動領取</small>
         </span>
-        <label class="toggle">
-          <input type="checkbox" id="dailyToggle" checked>
-          <span class="slider"></span>
-        </label>
+        <select id="dailyToggle" class="setting-select">
+          <option value="on">開啟</option>
+          <option value="off">關閉</option>
+        </select>
       </div>
 
-      <!-- 每日執行時間（僅在自動領取開啟時顯示） -->
-      <div class="setting-row" id="timeRow">
+      <div class="setting-row stacked" id="timeRow">
         <span class="setting-label">每日執行時間</span>
         <div class="time-inputs">
           <input type="number" id="hourInput" min="0" max="23" value="5">
@@ -384,43 +390,44 @@
           <span class="save-status" id="timeStatus"></span>
         </div>
       </div>
+    </div>
 
-      <!-- 領取後關閉頁面 -->
+    <!-- 偏好 -->
+    <div class="setting-group">
+      <div class="setting-section-label">偏好</div>
+
       <div class="setting-row">
         <span class="setting-label">
           領取後關閉頁面
           <small>完成後自動關閉禮包分頁</small>
         </span>
-        <label class="toggle">
-          <input type="checkbox" id="autoCloseToggle" checked>
-          <span class="slider"></span>
-        </label>
+        <select id="autoCloseToggle" class="setting-select">
+          <option value="on">開啟</option>
+          <option value="off" selected>關閉</option>
+        </select>
       </div>
 
-      <!-- 歷史紀錄筆數 -->
       <div class="setting-row">
         <span class="setting-label">
           歷史紀錄筆數
           <small>最多保留幾筆執行記錄</small>
         </span>
-        <div class="num-input-row">
-          <input type="number" id="maxLogInput" min="1" max="50" value="3">
-          <button id="saveMaxLogBtn" class="btn btn-gray">儲存</button>
-          <span class="save-status" id="maxLogStatus"></span>
-        </div>
+        <select id="maxLogInput" class="setting-select">
+          <option value="3" selected>3 筆</option>
+          <option value="5">5 筆</option>
+          <option value="10">10 筆</option>
+          <option value="20">20 筆</option>
+          <option value="30">30 筆</option>
+          <option value="50">50 筆</option>
+        </select>
       </div>
-
     </div>
+
   </div>
 
   <!-- 贊助 tab -->
   <div id="tab-sponsor" class="tab-content">
     <div class="sponsor-content">
-      <div class="sponsor-title">支持作者 ❤</div>
-      <p class="sponsor-desc">
-        感謝你使用 LootKeeper！<br>
-        如果這個工具幫助到你，歡迎小額贊助，讓作者有動力繼續維護與更新。
-      </p>
 
       <!-- Oen 區塊：核准後移除這行的 style="display:none"，並將 images/oen-qrcode.png 放入資料夾 -->
       <div class="sponsor-box" style="display:none">
@@ -431,9 +438,13 @@
       </div>
 
       <div class="sponsor-box">
-        <p>作者：<span class="highlight">墨染楓（瑤光聽雪）</span></p>
-        <p>贊助方式：<span class="highlight">LINE Pay / 街口支付</span></p>
-        <p>請私訊作者索取收款碼，或直接在遊戲內聯繫。</p>
+        <div class="sponsor-account">
+          <span>代碼 <strong>396</strong></span>
+          <span>帳號 <strong>909611333</strong></span>
+        </div>
+        <img src="sponsor.jpg" alt="街口收款碼" class="sponsor-qr">
+        <p class="sponsor-qr-hint">請用街口 / 各銀行 APP 掃碼付款</p>
+        <p class="sponsor-qr-sub">支援所有銀行及電支機構 · 勿用相機掃</p>
       </div>
 
       <p class="sponsor-note">

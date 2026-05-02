@@ -61,20 +61,24 @@ function runClaim() {
         const listener = (msg, sender) => {
             if (msg.type === "claimDone" && sender.tab?.id === tabId) {
                 chrome.runtime.onMessage.removeListener(listener);
+                clearTimeout(fallbackTimer);
                 if (msg.log) saveLog(msg.log);
 
                 // 依設定決定是否關閉分頁
                 chrome.storage.local.get("autoClose", (data) => {
-                    const shouldClose = data.autoClose !== undefined ? data.autoClose : true;
+                    const shouldClose = data.autoClose !== undefined ? data.autoClose : false;
                     if (shouldClose) closeTab();
-                    else authorizedTabs.delete(tabId);
+                    else {
+                        closed = true;
+                        authorizedTabs.delete(tabId);
+                    }
                 });
             }
         };
         chrome.runtime.onMessage.addListener(listener);
 
         // 逾時強制關閉（不論 autoClose 設定，避免分頁殭屍）
-        setTimeout(() => {
+        const fallbackTimer = setTimeout(() => {
             chrome.runtime.onMessage.removeListener(listener);
             if (!closed) {
                 saveLog({
@@ -107,9 +111,10 @@ chrome.runtime.onInstalled.addListener(() => {
 
 chrome.alarms.onAlarm.addListener((alarm) => {
     if (alarm.name === "dailyClaim") {
-        chrome.storage.local.get("dailyEnabled", (data) => {
+        chrome.storage.local.get(["dailyEnabled", "lastClaim"], (data) => {
             const enabled = data.dailyEnabled !== undefined ? data.dailyEnabled : true;
             if (!enabled) return;
+            if (data.lastClaim === today()) return;
             chrome.storage.local.set({ lastClaim: today() });
             runClaim();
         });
