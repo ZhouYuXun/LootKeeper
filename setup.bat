@@ -47,6 +47,14 @@ if %FOUND% == 0 (
     exit /b 1
 )
 
+:: 登錄 lootkeeper-update: 自訂通訊協定（供設定頁面一鍵更新使用）
+set "UPDATE_BAT=%~dp0update.bat"
+reg add "HKCU\SOFTWARE\Classes\lootkeeper-update" /ve /d "LootKeeper Update" /f >nul 2>&1
+reg add "HKCU\SOFTWARE\Classes\lootkeeper-update" /v "URL Protocol" /d "" /f >nul 2>&1
+reg add "HKCU\SOFTWARE\Classes\lootkeeper-update\shell\open\command" /ve /d "\"cmd.exe\" /c \"%UPDATE_BAT%\"" /f >nul 2>&1
+echo [成功] 設定頁面一鍵更新已啟用
+echo.
+
 echo ------------------------------------------------
 echo 設定完成！下次重開機後，已設定的瀏覽器會自動
 echo 在背景執行，不會開視窗，擴充套件排程器正常運作。

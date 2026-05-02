@@ -336,19 +336,28 @@
       flex: 1;
     }
     .update-status.up-to-date { color: #1a7a1a; }
-    .update-status.has-update { color: #e67e00; }
+    .update-status.has-update { color: #e67e00; font-weight: 600; }
     .update-status.error      { color: #c00; }
-    .update-link {
-      color: #e67e00;
-      font-weight: 600;
-      text-decoration: underline;
-      cursor: pointer;
-    }
     .version-text {
       font-size: 12px;
       color: #888;
       font-family: monospace;
     }
+    .btn-orange { background: #e67e00; color: #fff; }
+    .btn-orange:hover:not(:disabled) { background: #c96d00; }
+    .update-action-row {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding-top: 2px;
+    }
+    .update-hint {
+      font-size: 10px;
+      color: #aaa;
+      text-align: center;
+    }
+    .btn-reload { background: #f0f0f0; color: #555; border: 1px dashed #ccc; }
+    .btn-reload:hover { background: #e8e8e8; color: #333; }
 
     /* 頁腳 */
     .footer {
@@ -464,6 +473,12 @@
       <div class="update-row">
         <span class="update-status" id="updateStatus"></span>
         <button id="checkUpdateBtn" class="btn btn-gray">檢查更新</button>
+      </div>
+
+      <div id="updateActionRow" class="update-action-row" style="display:none">
+        <button id="doUpdateBtn" class="btn btn-orange">立即更新</button>
+        <div class="update-hint">更新完成後，點擊下方按鈕重新載入</div>
+        <button id="reloadExtBtn" class="btn btn-reload">重新載入套件</button>
       </div>
     </div>
 

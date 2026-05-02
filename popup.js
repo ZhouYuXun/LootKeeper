@@ -203,6 +203,7 @@ function checkUpdate() {
     btn.disabled = true;
     statusEl.className = "update-status";
     statusEl.textContent = "檢查中…";
+    document.getElementById("updateActionRow").style.display = "none";
 
     fetch(RELEASES_API, { headers: { Accept: "application/vnd.github.v3+json" } })
         .then(r => r.json())
@@ -210,9 +211,9 @@ function checkUpdate() {
             const tag = data.tag_name || "";
             const cur = chrome.runtime.getManifest().version;
             if (isNewer(tag, cur)) {
-                const url = data.html_url || "https://github.com/ZhouYuXun/LootKeeper/releases";
-                statusEl.innerHTML = `發現新版本 <a href="${url}" target="_blank" class="update-link">${tag} 前往下載</a>`;
+                statusEl.textContent = `發現新版本 ${tag}`;
                 statusEl.className = "update-status has-update";
+                document.getElementById("updateActionRow").style.display = "";
             } else {
                 statusEl.textContent = "已是最新版本";
                 statusEl.className = "update-status up-to-date";
@@ -226,6 +227,14 @@ function checkUpdate() {
 }
 
 document.getElementById("checkUpdateBtn").addEventListener("click", checkUpdate);
+
+document.getElementById("doUpdateBtn").addEventListener("click", () => {
+    window.open("lootkeeper-update:", "_self");
+});
+
+document.getElementById("reloadExtBtn").addEventListener("click", () => {
+    chrome.runtime.reload();
+});
 
 // ── 初始化 ────────────────────────────────────────────
 loadSettings();

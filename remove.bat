@@ -19,5 +19,9 @@ if %errorlevel% == 0 (
     echo [提示] Microsoft Edge 排程不存在或已移除
 )
 
+:: 清除 lootkeeper-update: 通訊協定
+reg delete "HKCU\SOFTWARE\Classes\lootkeeper-update" /f >nul 2>&1
+echo [成功] 一鍵更新通訊協定已清除
+
 echo.
 pause
