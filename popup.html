@@ -358,6 +358,19 @@
     }
     .btn-reload { background: #f0f0f0; color: #555; border: 1px dashed #ccc; }
     .btn-reload:hover { background: #e8e8e8; color: #333; }
+    .setup-hint {
+      font-size: 11px;
+      color: #999;
+      margin-bottom: 6px;
+      line-height: 1.6;
+    }
+    .setup-hint code {
+      font-family: monospace;
+      color: #555;
+      background: #f0f0f0;
+      padding: 1px 5px;
+      border-radius: 3px;
+    }
 
     /* 頁腳 */
     .footer {
@@ -470,15 +483,23 @@
         <span class="version-text" id="currentVersion"></span>
       </div>
 
-      <div class="update-row">
-        <span class="update-status" id="updateStatus"></span>
-        <button id="checkUpdateBtn" class="btn btn-gray">檢查更新</button>
+      <!-- 未確認：提示先執行 setup.bat -->
+      <div id="setupPrompt">
+        <div class="setup-hint">更新功能需先執行 <code>setup.bat</code> 以登錄通訊協定</div>
+        <button id="setupDoneBtn" class="btn btn-gray" style="width:100%">我已執行 setup.bat</button>
       </div>
 
-      <div id="updateActionRow" class="update-action-row" style="display:none">
-        <button id="doUpdateBtn" class="btn btn-orange">立即更新</button>
-        <div class="update-hint">更新完成後，點擊下方按鈕重新載入</div>
-        <button id="reloadExtBtn" class="btn btn-reload">重新載入套件</button>
+      <!-- 確認後：顯示更新控制項 -->
+      <div id="updateControls" style="display:none">
+        <div class="update-row">
+          <span class="update-status" id="updateStatus"></span>
+          <button id="checkUpdateBtn" class="btn btn-gray">檢查更新</button>
+        </div>
+        <div id="updateActionRow" class="update-action-row" style="display:none">
+          <button id="doUpdateBtn" class="btn btn-orange">立即更新</button>
+          <div class="update-hint">更新完成後，點擊下方按鈕重新載入</div>
+          <button id="reloadExtBtn" class="btn btn-reload">重新載入套件</button>
+        </div>
       </div>
     </div>
 

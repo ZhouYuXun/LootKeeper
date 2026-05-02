@@ -128,7 +128,8 @@ function syncLogScroll(max) {
 
 // ── 設定：載入 ────────────────────────────────────────
 function loadSettings() {
-    chrome.storage.local.get(["claimTime", "autoClose", "dailyEnabled", "maxLogEntries"], (data) => {
+    chrome.storage.local.get(["claimTime", "autoClose", "dailyEnabled", "maxLogEntries", "setupDone"], (data) => {
+        applySetupState(!!data.setupDone);
         const t = data.claimTime || { hour: 5, minute: 10 };
         document.getElementById("hourInput").value   = String(t.hour).padStart(2, "0");
         document.getElementById("minuteInput").value = String(t.minute).padStart(2, "0");
@@ -232,29 +233,24 @@ document.getElementById("doUpdateBtn").addEventListener("click", () => {
     const btn = document.getElementById("doUpdateBtn");
     btn.disabled = true;
     btn.textContent = "啟動中…";
-
     chrome.tabs.create({ url: "lootkeeper-update:" }, (tab) => {
-        // 稍後關閉由協定接管後留下的空白頁
-        setTimeout(() => {
-            chrome.tabs.remove(tab.id, () => { chrome.runtime.lastError; });
-        }, 1500);
-        // 恢復按鈕
-        setTimeout(() => {
-            btn.disabled = false;
-            btn.textContent = "立即更新";
-        }, 2000);
+        setTimeout(() => chrome.tabs.remove(tab.id, () => { chrome.runtime.lastError; }), 1500);
+        setTimeout(() => { btn.disabled = false; btn.textContent = "立即更新"; }, 2000);
     });
-
-    if (chrome.runtime.lastError) {
-        btn.disabled = false;
-        btn.textContent = "立即更新";
-        document.getElementById("updateStatus").textContent = "請先重新執行 setup.bat 以啟用此功能";
-        document.getElementById("updateStatus").className = "update-status error";
-    }
 });
 
 document.getElementById("reloadExtBtn").addEventListener("click", () => {
     chrome.runtime.reload();
+});
+
+// ── setup.bat 確認狀態 ────────────────────────────────
+function applySetupState(done) {
+    document.getElementById("setupPrompt").style.display   = done ? "none" : "";
+    document.getElementById("updateControls").style.display = done ? ""     : "none";
+}
+
+document.getElementById("setupDoneBtn").addEventListener("click", () => {
+    chrome.storage.local.set({ setupDone: true }, () => applySetupState(true));
 });
 
 // ── 初始化 ────────────────────────────────────────────
