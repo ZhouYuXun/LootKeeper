@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, "Microsoft JhengHei", sans-serif;
+      width: 320px;
+      background: #f5f6f8;
+      color: #222;
+      font-size: 13px;
+    }
+
+    /* 頂部工具列 */
+    .header {
+      background: #fff;
+      border-bottom: 1px solid #e8e8e8;
+    }
+    .header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px 8px;
+    }
+    .header h2 { font-size: 14px; font-weight: 600; }
+    .header-right { display: flex; align-items: center; gap: 8px; }
+
+    /* 分頁導覽 */
+    .tabs {
+      display: flex;
+      border-top: 1px solid #f0f0f0;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 6px 0;
+      background: none;
+      border: none;
+      font-size: 12px;
+      font-weight: 500;
+      color: #999;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .tab-btn.active { color: #1a7a1a; border-bottom-color: #1a7a1a; }
+    .tab-btn:hover:not(.active) { color: #555; background: #fafafa; }
+
+    /* 按鈕共用 */
+    .btn {
+      padding: 5px 12px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+    .btn-green { background: #1a7a1a; color: #fff; }
+    .btn-green:hover:not(:disabled) { background: #155e15; }
+    .btn-gray  { background: #e8e8e8; color: #444; }
+    .btn-gray:hover { background: #ddd; }
+    .btn:disabled { background: #aaa; color: #fff; cursor: default; }
+
+    #status {
+      font-size: 11px;
+      color: #888;
+      white-space: nowrap;
+    }
+    #status.success { color: #1a7a1a; }
+    #status.error   { color: #c00; }
+
+    /* 分頁內容 */
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* ── 記錄 tab ── */
+    .log-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 14px 6px;
+      background: #fff;
+      border-bottom: 1px solid #e8e8e8;
+    }
+    .last-run { font-size: 11px; color: #999; }
+    .last-run span { color: #555; font-weight: 500; }
+    #clearLogBtn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #bbb;
+      font-size: 15px;
+      padding: 2px 4px;
+      border-radius: 4px;
+      transition: color 0.2s, background 0.2s;
+      line-height: 1;
+      title: "清空記錄";
+    }
+    #clearLogBtn:hover { color: #c00; background: #fff0f0; }
+
+    .log-list {
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .log-list.scrollable {
+      max-height: 320px;
+      overflow-y: auto;
+    }
+    .entry {
+      background: #fff;
+      border-radius: 8px;
+      border-left: 4px solid #ccc;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      overflow: hidden;
+    }
+    .entry.has-success { border-left-color: #1a7a1a; }
+    .entry.has-error   { border-left-color: #c00; }
+    .entry.has-partial { border-left-color: #e67e00; }
+    .entry-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 10px 5px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .entry-head:hover { background: #fafafa; }
+    .entry-time { font-size: 11px; color: #999; }
+    .entry-summary { font-size: 11px; font-weight: 600; }
+    .summary-success { color: #1a7a1a; }
+    .summary-error   { color: #c00; }
+    .summary-partial { color: #e67e00; }
+    .entry-body {
+      padding: 0 10px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .gift-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .gift-name { color: #444; }
+    .gift-right { display: flex; align-items: center; gap: 5px; }
+    .badge {
+      display: inline-block;
+      padding: 1px 7px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .badge-success { background: #e6f4e6; color: #1a7a1a; }
+    .badge-skipped { background: #f0f0f0; color: #888; }
+    .badge-locked  { background: #fff3e0; color: #e67e00; }
+    .badge-unknown { background: #fce8e8; color: #c00; }
+    .gift-note { font-size: 10px; color: #bbb; }
+    .error-msg { padding: 6px 10px 8px; color: #c00; font-size: 12px; }
+    .empty {
+      text-align: center;
+      color: #bbb;
+      padding: 30px 0;
+      font-size: 12px;
+    }
+
+    /* ── 設定 tab ── */
+    .setting-group {
+      padding: 10px 14px;
+      background: #fff;
+      border-bottom: 1px solid #f0f0f0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .setting-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .setting-label {
+      font-size: 12px;
+      color: #444;
+    }
+    .setting-label small {
+      display: block;
+      font-size: 10px;
+      color: #aaa;
+      margin-top: 1px;
+    }
+    .time-inputs {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .time-inputs input {
+      width: 40px;
+      text-align: center;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 3px 4px;
+      font-size: 13px;
+      font-family: monospace;
+      color: #222;
+    }
+    .time-inputs input:focus { outline: none; border-color: #1a7a1a; }
+    .time-sep { color: #888; font-weight: bold; }
+    .save-status {
+      font-size: 11px;
+      color: #1a7a1a;
+      min-width: 36px;
+      text-align: right;
+    }
+
+    /* Toggle 開關 */
+    .toggle {
+      position: relative;
+      display: inline-block;
+      width: 36px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background: #ccc;
+      border-radius: 20px;
+      transition: background 0.2s;
+    }
+    .slider::before {
+      content: "";
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      left: 3px;
+      bottom: 3px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.2s;
+    }
+    .toggle input:checked + .slider { background: #1a7a1a; }
+    .toggle input:checked + .slider::before { transform: translateX(16px); }
+
+    /* 數字輸入 */
+    .num-input-row {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .num-input-row input {
+      width: 52px;
+      text-align: center;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 3px 4px;
+      font-size: 13px;
+      font-family: monospace;
+      color: #222;
+    }
+    .num-input-row input:focus { outline: none; border-color: #1a7a1a; }
+
+    /* ── 贊助 tab ── */
+    .sponsor-content {
+      padding: 16px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .sponsor-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #222;
+    }
+    .sponsor-desc {
+      font-size: 12px;
+      color: #555;
+      line-height: 1.7;
+    }
+    .sponsor-box {
+      background: #fff;
+      border: 1px solid #e8e8e8;
+      border-radius: 8px;
+      padding: 12px 14px;
+    }
+    .sponsor-box p {
+      font-size: 12px;
+      color: #444;
+      line-height: 1.7;
+      margin-bottom: 4px;
+    }
+    .sponsor-box p:last-child { margin-bottom: 0; }
+    .sponsor-box .highlight {
+      font-weight: 600;
+      color: #1a7a1a;
+    }
+    .sponsor-note {
+      font-size: 11px;
+      color: #aaa;
+      text-align: center;
+    }
+
+    /* 頁腳 */
+    .footer {
+      padding: 8px 14px;
+      background: #fff;
+      border-top: 1px solid #e8e8e8;
+      font-size: 10px;
+      color: #bbb;
+      text-align: center;
+      line-height: 1.6;
+    }
+    .footer strong { color: #999; }
+  </style>
+</head>
+<body>
+  <!-- 頂部工具列 -->
+  <div class="header">
+    <div class="header-top">
+      <h2>LootKeeper</h2>
+      <div class="header-right">
+        <span id="status"></span>
+        <button id="claimBtn" class="btn btn-green">立即領取</button>
+      </div>
+    </div>
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="log">記錄</button>
+      <button class="tab-btn" data-tab="settings">設定</button>
+      <button class="tab-btn" data-tab="sponsor">贊助</button>
+    </div>
+  </div>
+
+  <!-- 記錄 tab -->
+  <div id="tab-log" class="tab-content active">
+    <div class="log-header">
+      <div class="last-run" id="lastRun">最後執行：<span>尚無記錄</span></div>
+      <button id="clearLogBtn" title="清空記錄">🗑</button>
+    </div>
+    <div class="log-list" id="log"></div>
+  </div>
+
+  <!-- 設定 tab -->
+  <div id="tab-settings" class="tab-content">
+    <div class="setting-group">
+
+      <!-- 每日自動領取 -->
+      <div class="setting-row">
+        <span class="setting-label">
+          每日自動領取
+          <small>關閉後僅保留手動領取</small>
+        </span>
+        <label class="toggle">
+          <input type="checkbox" id="dailyToggle" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <!-- 每日執行時間（僅在自動領取開啟時顯示） -->
+      <div class="setting-row" id="timeRow">
+        <span class="setting-label">每日執行時間</span>
+        <div class="time-inputs">
+          <input type="number" id="hourInput" min="0" max="23" value="5">
+          <span class="time-sep">:</span>
+          <input type="number" id="minuteInput" min="0" max="59" value="10">
+          <button id="saveTimeBtn" class="btn btn-gray">儲存</button>
+          <span class="save-status" id="timeStatus"></span>
+        </div>
+      </div>
+
+      <!-- 領取後關閉頁面 -->
+      <div class="setting-row">
+        <span class="setting-label">
+          領取後關閉頁面
+          <small>完成後自動關閉禮包分頁</small>
+        </span>
+        <label class="toggle">
+          <input type="checkbox" id="autoCloseToggle" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <!-- 歷史紀錄筆數 -->
+      <div class="setting-row">
+        <span class="setting-label">
+          歷史紀錄筆數
+          <small>最多保留幾筆執行記錄</small>
+        </span>
+        <div class="num-input-row">
+          <input type="number" id="maxLogInput" min="1" max="50" value="3">
+          <button id="saveMaxLogBtn" class="btn btn-gray">儲存</button>
+          <span class="save-status" id="maxLogStatus"></span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 贊助 tab -->
+  <div id="tab-sponsor" class="tab-content">
+    <div class="sponsor-content">
+      <div class="sponsor-title">支持作者 ❤</div>
+      <p class="sponsor-desc">
+        感謝你使用「每日禮包自動領取」！<br>
+        如果這個工具幫助到你，歡迎小額贊助，讓作者有動力繼續維護與更新。
+      </p>
+      <div class="sponsor-box">
+        <p>作者：<span class="highlight">墨染楓（瑤光聽雪）</span></p>
+        <p>贊助方式：<span class="highlight">LINE Pay / 街口支付</span></p>
+        <p>請私訊作者索取收款碼，或直接在遊戲內聯繫。</p>
+      </div>
+      <p class="sponsor-note">
+        贊助純屬自願，不影響功能使用。
+      </p>
+    </div>
+  </div>
+
+  <!-- 頁腳 -->
+  <div class="footer">
+    <strong>LootKeeper</strong> · 作者：墨染楓（瑤光聽雪）
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

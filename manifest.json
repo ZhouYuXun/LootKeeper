@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "LootKeeper",
+  "version": "1.1",
+  "description": "每天定時自動領取遊戲 VIP 禮包，支援補領、手動觸發、自訂時間與執行記錄。作者：墨染楓（瑤光聽雪）。",
+  "permissions": ["alarms", "tabs", "storage"],
+  "host_permissions": ["https://www.swordofjustice.com/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.swordofjustice.com/h5/20260424/*"],
+      "js": ["auto-claim.js"]
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "LootKeeper"
+  }
+}
