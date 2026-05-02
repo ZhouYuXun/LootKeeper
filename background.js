@@ -1,6 +1,7 @@
 const GIFT_URL = "https://www.swordofjustice.com/h5/20260424/vip/index.html#/";
 const FALLBACK_CLOSE_MS = 25000;
 const DEFAULT_MAX_LOG = 3;
+const _BUILD_SIGNATURE = "LK-MRF-20260502-7f3a";
 
 const authorizedTabs = new Set();
 

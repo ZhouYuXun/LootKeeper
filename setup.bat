@@ -2,7 +2,7 @@
 chcp 65001 >nul
 setlocal enabledelayedexpansion
 echo ================================================
-echo   每日禮包自動領取 — 開機自動啟動設定
+echo   LootKeeper — 開機自動啟動設定
 echo ================================================
 echo.
 
@@ -13,7 +13,7 @@ set CHROME=
 for /f "tokens=2*" %%a in ('reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\chrome.exe" /ve 2^>nul') do set CHROME=%%b
 
 if defined CHROME (
-    schtasks /create /tn "DailyGiftChromeAutoStart" /tr "\"%CHROME%\" --no-startup-window" /sc ONLOGON /f >nul 2>&1
+    schtasks /create /tn "LootKeeperChromeAutoStart" /tr "\"%CHROME%\" --no-startup-window" /sc ONLOGON /f >nul 2>&1
     if !errorlevel! == 0 (
         echo [成功] Google Chrome 開機自動啟動已設定
         echo        路徑：%CHROME%
@@ -29,7 +29,7 @@ set EDGE=
 for /f "tokens=2*" %%a in ('reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\msedge.exe" /ve 2^>nul') do set EDGE=%%b
 
 if defined EDGE (
-    schtasks /create /tn "DailyGiftEdgeAutoStart" /tr "\"%EDGE%\" --no-startup-window" /sc ONLOGON /f >nul 2>&1
+    schtasks /create /tn "LootKeeperEdgeAutoStart" /tr "\"%EDGE%\" --no-startup-window" /sc ONLOGON /f >nul 2>&1
     if !errorlevel! == 0 (
         echo [成功] Microsoft Edge 開機自動啟動已設定
         echo        路徑：%EDGE%

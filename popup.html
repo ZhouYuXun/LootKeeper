@@ -304,6 +304,19 @@
       color: #aaa;
       text-align: center;
     }
+    .sponsor-qr {
+      display: block;
+      width: 148px;
+      height: 148px;
+      margin: 8px auto 4px;
+      border-radius: 6px;
+      border: 1px solid #e8e8e8;
+    }
+    .sponsor-qr-hint {
+      text-align: center;
+      font-size: 11px;
+      color: #888;
+    }
 
     /* 頁腳 */
     .footer {
@@ -405,14 +418,24 @@
     <div class="sponsor-content">
       <div class="sponsor-title">支持作者 ❤</div>
       <p class="sponsor-desc">
-        感謝你使用「每日禮包自動領取」！<br>
+        感謝你使用 LootKeeper！<br>
         如果這個工具幫助到你，歡迎小額贊助，讓作者有動力繼續維護與更新。
       </p>
+
+      <!-- Oen 區塊：核准後移除這行的 style="display:none"，並將 images/oen-qrcode.png 放入資料夾 -->
+      <div class="sponsor-box" style="display:none">
+        <p>作者：<span class="highlight">墨染楓（瑤光聽雪）</span></p>
+        <p>贊助方式：<span class="highlight">Oen</span></p>
+        <img src="images/oen-qrcode.png" alt="Oen 收款碼" class="sponsor-qr">
+        <p class="sponsor-qr-hint">掃描 QR code 贊助</p>
+      </div>
+
       <div class="sponsor-box">
         <p>作者：<span class="highlight">墨染楓（瑤光聽雪）</span></p>
         <p>贊助方式：<span class="highlight">LINE Pay / 街口支付</span></p>
         <p>請私訊作者索取收款碼，或直接在遊戲內聯繫。</p>
       </div>
+
       <p class="sponsor-note">
         贊助純屬自願，不影響功能使用。
       </p>

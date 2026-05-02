@@ -17,5 +17,7 @@
   "action": {
     "default_popup": "popup.html",
     "default_title": "LootKeeper"
-  }
+  },
+  "author": "墨染楓（瑤光聽雪）",
+  "_origin": "https://github.com/ZhouYuXun/LootKeeper"
 }
