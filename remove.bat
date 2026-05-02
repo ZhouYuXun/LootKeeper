@@ -1,7 +1,7 @@
 @echo off
 chcp 65001 >nul
 echo ================================================
-echo   LootKeeper — 移除開機自動啟動
+echo   LootKeeper — 完整移除
 echo ================================================
 echo.
 
@@ -19,9 +19,14 @@ if %errorlevel% == 0 (
     echo [提示] Microsoft Edge 排程不存在或已移除
 )
 
-:: 清除 lootkeeper-update: 通訊協定
 reg delete "HKCU\SOFTWARE\Classes\lootkeeper-update" /f >nul 2>&1
-echo [成功] 一鍵更新通訊協定已清除
+if %errorlevel% == 0 (
+    echo [成功] 一鍵更新通訊協定已清除
+) else (
+    echo [提示] 通訊協定不存在或已清除
+)
 
+echo.
+echo 完成。請手動至瀏覽器擴充套件管理頁移除 LootKeeper，並刪除安裝資料夾。
 echo.
 pause
