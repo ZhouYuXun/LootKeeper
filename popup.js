@@ -229,7 +229,28 @@ function checkUpdate() {
 document.getElementById("checkUpdateBtn").addEventListener("click", checkUpdate);
 
 document.getElementById("doUpdateBtn").addEventListener("click", () => {
-    window.open("lootkeeper-update:", "_self");
+    const btn = document.getElementById("doUpdateBtn");
+    btn.disabled = true;
+    btn.textContent = "啟動中…";
+
+    chrome.tabs.create({ url: "lootkeeper-update:" }, (tab) => {
+        // 稍後關閉由協定接管後留下的空白頁
+        setTimeout(() => {
+            chrome.tabs.remove(tab.id, () => { chrome.runtime.lastError; });
+        }, 1500);
+        // 恢復按鈕
+        setTimeout(() => {
+            btn.disabled = false;
+            btn.textContent = "立即更新";
+        }, 2000);
+    });
+
+    if (chrome.runtime.lastError) {
+        btn.disabled = false;
+        btn.textContent = "立即更新";
+        document.getElementById("updateStatus").textContent = "請先重新執行 setup.bat 以啟用此功能";
+        document.getElementById("updateStatus").className = "update-status error";
+    }
 });
 
 document.getElementById("reloadExtBtn").addEventListener("click", () => {
