@@ -67,7 +67,7 @@ async function autoClaim() {
                 log.results.push({ name, status: "skipped", note: "找不到領取按鈕" });
             }
         } else if (card.classList.contains("gift-card--claimed")) {
-            log.results.push({ name, status: "skipped", note: "今日已領過" });
+            log.results.push({ name, status: "skipped", note: "已領過" });
         } else if (card.classList.contains("gift-card--locked")) {
             log.results.push({ name, status: "not_found", note: "尚未解鎖" });
         } else {
