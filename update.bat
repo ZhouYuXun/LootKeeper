@@ -1,6 +1,6 @@
 @echo off
 chcp 65001 >nul
-setlocal enabledelayedexpansion
+setlocal
 title LootKeeper 更新程式
 
 echo ================================================
@@ -12,14 +12,14 @@ set "INSTALL_DIR=%~dp0"
 set "INSTALL_DIR=%INSTALL_DIR:~0,-1%"
 set "TMP_ZIP=%TEMP%\LootKeeper_update.zip"
 set "TMP_DIR=%TEMP%\LootKeeper_update_src"
+set "MANIFEST_URL=https://raw.githubusercontent.com/ZhouYuXun/LootKeeper/main/manifest.json"
+set "DOWNLOAD_URL=https://github.com/ZhouYuXun/LootKeeper/archive/refs/heads/main.zip"
 
 echo 正在查詢最新版本...
-powershell -NoProfile -Command "$r = Invoke-RestMethod 'https://api.github.com/repos/ZhouYuXun/LootKeeper/releases/latest'; $r.zipball_url | Out-File '%TEMP%\lk_url.txt'; $r.tag_name | Out-File '%TEMP%\lk_tag.txt'"
+powershell -NoProfile -Command "$r = Invoke-RestMethod '%MANIFEST_URL%'; $r.version | Out-File '%TEMP%\lk_remote_ver.txt'"
 
-set /p LATEST_URL=<"%TEMP%\lk_url.txt"
-set /p LATEST_TAG=<"%TEMP%\lk_tag.txt"
-
-if "%LATEST_TAG%"=="" (
+set /p REMOTE_VER=<"%TEMP%\lk_remote_ver.txt"
+if "%REMOTE_VER%"=="" (
     echo.
     echo [錯誤] 無法取得版本資訊，請確認網路連線後重試。
     echo.
@@ -27,10 +27,10 @@ if "%LATEST_TAG%"=="" (
     exit /b 1
 )
 
-echo 最新版本：%LATEST_TAG%
+echo 最新版本：v%REMOTE_VER%
 echo 安裝位置：%INSTALL_DIR%
 echo.
-set /p CONFIRM=確認更新到 %LATEST_TAG%？(Y/N)：
+set /p CONFIRM=確認更新到 v%REMOTE_VER%？(Y/N)：
 
 if /i not "%CONFIRM%"=="Y" (
     echo 已取消。
@@ -39,8 +39,8 @@ if /i not "%CONFIRM%"=="Y" (
 )
 
 echo.
-echo [1/3] 正在下載 %LATEST_TAG%...
-powershell -NoProfile -Command "Invoke-WebRequest '%LATEST_URL%' -OutFile '%TMP_ZIP%' -UseBasicParsing"
+echo [1/3] 正在下載 v%REMOTE_VER%...
+powershell -NoProfile -Command "Invoke-WebRequest '%DOWNLOAD_URL%' -OutFile '%TMP_ZIP%' -UseBasicParsing"
 
 if not exist "%TMP_ZIP%" (
     echo [錯誤] 下載失敗，請稍後再試。
@@ -66,8 +66,7 @@ xcopy /e /y /i "%SRC_DIR%\*" "%INSTALL_DIR%\" >nul 2>&1
 
 del "%TMP_ZIP%" 2>nul
 rmdir /s /q "%TMP_DIR%" 2>nul
-del "%TEMP%\lk_url.txt" 2>nul
-del "%TEMP%\lk_tag.txt" 2>nul
+del "%TEMP%\lk_remote_ver.txt" 2>nul
 
 echo.
 echo ================================================
