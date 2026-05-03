@@ -210,7 +210,15 @@ function checkUpdate() {
             const remote = data.version || "";
             const local = chrome.runtime.getManifest().version;
             if (isNewer(remote, local)) {
-                statusEl.innerHTML = `發現新版本 v${remote} · <a href="https://github.com/ZhouYuXun/LootKeeper" target="_blank" class="update-link">前往下載</a>`;
+                const ver = document.createTextNode(`發現新版本 v${remote} · `);
+                const link = document.createElement("a");
+                link.href = "https://github.com/ZhouYuXun/LootKeeper";
+                link.target = "_blank";
+                link.className = "update-link";
+                link.textContent = "前往下載";
+                statusEl.textContent = "";
+                statusEl.appendChild(ver);
+                statusEl.appendChild(link);
                 statusEl.className = "update-status has-update";
             } else {
                 statusEl.textContent = "已是最新版本";

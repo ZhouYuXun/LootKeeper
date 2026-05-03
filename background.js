@@ -4,6 +4,7 @@ const DEFAULT_MAX_LOG = 3;
 const _BUILD_SIGNATURE = "LK-MRF-20260502-7f3a";
 
 const authorizedTabs = new Set();
+let claimInProgress = false;
 
 function today() {
     return new Date().toISOString().slice(0, 10);
@@ -46,6 +47,8 @@ function saveLog(entry) {
 }
 
 function runClaim() {
+    if (claimInProgress) return;
+    claimInProgress = true;
     chrome.tabs.create({ url: GIFT_URL }, (tab) => {
         const tabId = tab.id;
         authorizedTabs.add(tabId);
@@ -54,6 +57,7 @@ function runClaim() {
         function closeTab() {
             if (closed) return;
             closed = true;
+            claimInProgress = false;
             authorizedTabs.delete(tabId);
             chrome.tabs.remove(tabId, () => { chrome.runtime.lastError; });
         }
@@ -70,6 +74,7 @@ function runClaim() {
                     if (shouldClose) closeTab();
                     else {
                         closed = true;
+                        claimInProgress = false;
                         authorizedTabs.delete(tabId);
                     }
                 });
@@ -81,6 +86,7 @@ function runClaim() {
         const fallbackTimer = setTimeout(() => {
             chrome.runtime.onMessage.removeListener(listener);
             if (!closed) {
+                claimInProgress = false;
                 saveLog({
                     time: new Date().toLocaleString("zh-TW", { hour12: false }),
                     results: [],
