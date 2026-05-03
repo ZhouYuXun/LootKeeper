@@ -128,8 +128,7 @@ function syncLogScroll(max) {
 
 // ── 設定：載入 ────────────────────────────────────────
 function loadSettings() {
-    chrome.storage.local.get(["claimTime", "autoClose", "dailyEnabled", "maxLogEntries", "setupDone"], (data) => {
-        applySetupState(!!data.setupDone);
+    chrome.storage.local.get(["claimTime", "autoClose", "dailyEnabled", "maxLogEntries"], (data) => {
         const t = data.claimTime || { hour: 5, minute: 10 };
         document.getElementById("hourInput").value   = String(t.hour).padStart(2, "0");
         document.getElementById("minuteInput").value = String(t.minute).padStart(2, "0");
@@ -204,7 +203,6 @@ function checkUpdate() {
     btn.disabled = true;
     statusEl.className = "update-status";
     statusEl.textContent = "檢查中…";
-    document.getElementById("updateActionRow").style.display = "none";
 
     fetch(REMOTE_MANIFEST)
         .then(r => r.json())
@@ -212,9 +210,8 @@ function checkUpdate() {
             const remote = data.version || "";
             const local = chrome.runtime.getManifest().version;
             if (isNewer(remote, local)) {
-                statusEl.textContent = `發現新版本 v${remote}`;
+                statusEl.innerHTML = `發現新版本 v${remote} · <a href="https://github.com/ZhouYuXun/LootKeeper" target="_blank" class="update-link">前往下載</a>`;
                 statusEl.className = "update-status has-update";
-                document.getElementById("updateActionRow").style.display = "";
             } else {
                 statusEl.textContent = "已是最新版本";
                 statusEl.className = "update-status up-to-date";
@@ -228,30 +225,6 @@ function checkUpdate() {
 }
 
 document.getElementById("checkUpdateBtn").addEventListener("click", checkUpdate);
-
-document.getElementById("doUpdateBtn").addEventListener("click", () => {
-    const btn = document.getElementById("doUpdateBtn");
-    btn.disabled = true;
-    btn.textContent = "啟動中…";
-    chrome.tabs.create({ url: "lootkeeper-update:" }, (tab) => {
-        setTimeout(() => chrome.tabs.remove(tab.id, () => { chrome.runtime.lastError; }), 1500);
-        setTimeout(() => { btn.disabled = false; btn.textContent = "立即更新"; }, 2000);
-    });
-});
-
-document.getElementById("reloadExtBtn").addEventListener("click", () => {
-    chrome.runtime.reload();
-});
-
-// ── setup.bat 確認狀態 ────────────────────────────────
-function applySetupState(done) {
-    document.getElementById("setupPrompt").style.display   = done ? "none" : "";
-    document.getElementById("updateControls").style.display = done ? ""     : "none";
-}
-
-document.getElementById("setupDoneBtn").addEventListener("click", () => {
-    chrome.storage.local.set({ setupDone: true }, () => applySetupState(true));
-});
 
 // ── 初始化 ────────────────────────────────────────────
 document.getElementById("currentVersion").textContent =

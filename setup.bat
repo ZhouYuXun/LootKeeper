@@ -1,59 +1,47 @@
 @echo off
 chcp 65001 >nul
-setlocal enabledelayedexpansion
+setlocal
 echo ================================================
-echo   LootKeeper — 開機自動啟動設定
+echo   LootKeeper ^— 開機自動啟動設定
 echo ================================================
 echo.
 
 set FOUND=0
 
-:: 設定 Chrome
 set CHROME=
 for /f "tokens=2*" %%a in ('reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\chrome.exe" /ve 2^>nul') do set CHROME=%%b
 
 if defined CHROME (
     schtasks /create /tn "LootKeeperChromeAutoStart" /tr "\"%CHROME%\" --no-startup-window" /sc ONLOGON /f >nul 2>&1
-    if !errorlevel! == 0 (
-        echo [成功] Google Chrome 開機自動啟動已設定
-        echo        路徑：%CHROME%
-        set FOUND=1
-    ) else (
+    if errorlevel 1 (
         echo [失敗] Google Chrome 設定失敗
+    ) else (
+        echo [成功] Google Chrome 開機自動啟動已設定
+        set FOUND=1
     )
     echo.
 )
 
-:: 設定 Edge
 set EDGE=
 for /f "tokens=2*" %%a in ('reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\msedge.exe" /ve 2^>nul') do set EDGE=%%b
 
 if defined EDGE (
     schtasks /create /tn "LootKeeperEdgeAutoStart" /tr "\"%EDGE%\" --no-startup-window" /sc ONLOGON /f >nul 2>&1
-    if !errorlevel! == 0 (
-        echo [成功] Microsoft Edge 開機自動啟動已設定
-        echo        路徑：%EDGE%
-        set FOUND=1
-    ) else (
+    if errorlevel 1 (
         echo [失敗] Microsoft Edge 設定失敗
+    ) else (
+        echo [成功] Microsoft Edge 開機自動啟動已設定
+        set FOUND=1
     )
     echo.
 )
 
 if %FOUND% == 0 (
-    echo [錯誤] 找不到 Chrome 或 Edge，請確認已安裝瀏覽器。
+    echo [提示] 找不到 Chrome 或 Edge，請確認已安裝瀏覽器。
     echo.
     pause
     exit /b 1
 )
-
-:: 登錄 lootkeeper-update: 自訂通訊協定（供設定頁面一鍵更新使用）
-set "UPDATE_BAT=%~dp0update.bat"
-reg add "HKCU\SOFTWARE\Classes\lootkeeper-update" /ve /d "LootKeeper Update" /f >nul 2>&1
-reg add "HKCU\SOFTWARE\Classes\lootkeeper-update" /v "URL Protocol" /d "" /f >nul 2>&1
-reg add "HKCU\SOFTWARE\Classes\lootkeeper-update\shell\open\command" /ve /d "\"cmd.exe\" /c \"%UPDATE_BAT%\"" /f >nul 2>&1
-echo [成功] 設定頁面一鍵更新已啟用
-echo.
 
 echo ------------------------------------------------
 echo 設定完成！下次重開機後，已設定的瀏覽器會自動

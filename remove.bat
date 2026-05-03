@@ -19,13 +19,6 @@ if %errorlevel% == 0 (
     echo [提示] Microsoft Edge 排程不存在或已移除
 )
 
-reg delete "HKCU\SOFTWARE\Classes\lootkeeper-update" /f >nul 2>&1
-if %errorlevel% == 0 (
-    echo [成功] 一鍵更新通訊協定已清除
-) else (
-    echo [提示] 通訊協定不存在或已清除
-)
-
 echo.
 echo 完成。請手動至瀏覽器擴充套件管理頁移除 LootKeeper，並刪除安裝資料夾。
 echo.
