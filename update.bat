@@ -16,9 +16,8 @@ set "MANIFEST_URL=https://raw.githubusercontent.com/ZhouYuXun/LootKeeper/main/ma
 set "DOWNLOAD_URL=https://github.com/ZhouYuXun/LootKeeper/archive/refs/heads/main.zip"
 
 echo 正在查詢最新版本...
-powershell -NoProfile -Command "$r = Invoke-RestMethod '%MANIFEST_URL%'; $r.version | Out-File '%TEMP%\lk_remote_ver.txt'"
+for /f "usebackq delims=" %%v in (`powershell -NoProfile -Command "(Invoke-RestMethod '%MANIFEST_URL%').version"`) do set "REMOTE_VER=%%v"
 
-set /p REMOTE_VER=<"%TEMP%\lk_remote_ver.txt"
 if "%REMOTE_VER%"=="" (
     echo.
     echo [錯誤] 無法取得版本資訊，請確認網路連線後重試。
@@ -66,7 +65,6 @@ xcopy /e /y /i "%SRC_DIR%\*" "%INSTALL_DIR%\" >nul 2>&1
 
 del "%TMP_ZIP%" 2>nul
 rmdir /s /q "%TMP_DIR%" 2>nul
-del "%TEMP%\lk_remote_ver.txt" 2>nul
 
 echo.
 echo ================================================
