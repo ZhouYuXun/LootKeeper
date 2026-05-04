@@ -1,6 +1,13 @@
 @echo off
 chcp 65001 >nul
 setlocal
+
+net session >nul 2>&1
+if errorlevel 1 (
+    powershell -Command "Start-Process -FilePath '%~f0' -Verb RunAs"
+    exit /b
+)
+
 echo ================================================
 echo   LootKeeper ^— 開機自動啟動設定
 echo ================================================
