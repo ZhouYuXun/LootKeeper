@@ -4,7 +4,7 @@
 
 **Chrome / Edge 擴充套件 · 每天定時自動領取遊戲 VIP 禮包**
 
-![version](https://img.shields.io/badge/版本-v1.2-4caf50?style=flat-square)
+![version](https://img.shields.io/badge/版本-v1.3-4caf50?style=flat-square)
 ![license](https://img.shields.io/badge/授權-自訂非商業-ed8936?style=flat-square)
 ![chrome](https://img.shields.io/badge/Chrome-支援-4285F4?style=flat-square&logo=googlechrome&logoColor=white)
 ![edge](https://img.shields.io/badge/Edge-支援-0078D7?style=flat-square&logo=microsoftedge&logoColor=white)
@@ -138,14 +138,16 @@
 
 ## 更新擴充套件
 
-### 方式一：從設定頁下載（建議）
+> 擴充套件**不會自動執行更新**，「檢查更新」只負責比對版本並通知。實際更新需手動完成。
+
+### 方式一：設定頁版本通知（建議）
 
 1. 點擊擴充套件圖示 → **設定 tab** → **檢查更新**
 2. 發現新版時點擊「**前往下載**」連結，開啟 GitHub 頁面
 3. 點擊綠色「**Code**」→ **Download ZIP**，解壓縮並覆蓋原資料夾
 4. 前往擴充套件管理頁，點擊「LootKeeper」卡片的「**重新載入**」圖示
 
-### 方式二：手動執行腳本
+### 方式二：執行更新腳本
 
 雙擊安裝資料夾內的 **`update.bat`**，腳本自動查詢最新版本、下載、解壓並覆蓋檔案，最後開啟瀏覽器擴充套件管理頁。點擊「LootKeeper」卡片的「**重新載入**」圖示即完成。
 
