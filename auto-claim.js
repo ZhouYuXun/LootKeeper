@@ -79,6 +79,9 @@ async function autoClaim() {
 }
 
 window.addEventListener("load", () => {
+    // 通知 background content script 已載入（診斷用）
+    chrome.runtime.sendMessage({ type: "contentLoaded" });
+
     chrome.runtime.sendMessage({ type: "checkAuth" }, (res) => {
         if (res?.authorized) setTimeout(autoClaim, 2000);
     });

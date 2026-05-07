@@ -234,6 +234,63 @@ function checkUpdate() {
 
 document.getElementById("checkUpdateBtn").addEventListener("click", checkUpdate);
 
+// ── 診斷日誌 ──────────────────────────────────────────
+const DIAG_TYPE_STYLE = {
+    alarm_fired:    { color: "#1a7a1a", icon: "🔔" },
+    alarm_skip:     { color: "#888",    icon: "⏭" },
+    run_start:      { color: "#1a7a1a", icon: "▶" },
+    run_blocked:    { color: "#e67e00", icon: "⛔" },
+    tab_ok:         { color: "#1a7a1a", icon: "🌐" },
+    tab_fail:       { color: "#c00",    icon: "❌" },
+    check_auth:     { color: "#555",    icon: "🔑" },
+    content_loaded: { color: "#555",    icon: "📄" },
+    claim_done:     { color: "#1a7a1a", icon: "✅" },
+    fallback:       { color: "#c00",    icon: "⏱" },
+    scheduled:      { color: "#555",    icon: "📅" },
+    schedule_off:   { color: "#888",    icon: "🔕" },
+    startup:        { color: "#555",    icon: "🚀" },
+    startup_claim:  { color: "#1a7a1a", icon: "🚀" },
+    startup_skip:   { color: "#888",    icon: "🚀" },
+    installed:      { color: "#555",    icon: "📦" },
+};
+
+function renderDiag() {
+    chrome.storage.local.get("diagLog", (data) => {
+        const container = document.getElementById("diagContainer");
+        const logs = data.diagLog || [];
+        if (logs.length === 0) {
+            container.innerHTML = '<div class="diag-empty">尚無診斷記錄</div>';
+            return;
+        }
+        container.innerHTML = "";
+        logs.forEach(entry => {
+            const style = DIAG_TYPE_STYLE[entry.type] || { color: "#888", icon: "•" };
+            const row = document.createElement("div");
+            row.className = "diag-row";
+            row.innerHTML = `
+              <span class="diag-icon">${style.icon}</span>
+              <span class="diag-time">${entry.t}</span>
+              <span class="diag-type" style="color:${style.color}">${entry.type}</span>
+              <span class="diag-note">${entry.note || ""}</span>
+            `;
+            container.appendChild(row);
+        });
+    });
+}
+
+document.getElementById("diagToggleBtn").addEventListener("click", () => {
+    const panel = document.getElementById("diagPanel");
+    const btn = document.getElementById("diagToggleBtn");
+    const hidden = panel.style.display === "none";
+    panel.style.display = hidden ? "" : "none";
+    btn.textContent = hidden ? "隱藏診斷" : "顯示診斷";
+    if (hidden) renderDiag();
+});
+
+document.getElementById("clearDiagBtn").addEventListener("click", () => {
+    chrome.storage.local.remove("diagLog", () => renderDiag());
+});
+
 // ── 初始化 ────────────────────────────────────────────
 document.getElementById("currentVersion").textContent =
     "v" + chrome.runtime.getManifest().version;

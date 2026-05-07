@@ -346,6 +346,40 @@
     .update-link { color: #e67e00; font-weight: 600; text-decoration: none; }
     .update-link:hover { text-decoration: underline; }
 
+    /* 診斷 */
+    .diag-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+    #diagPanel {
+      margin-top: 8px;
+      border: 1px solid #eee;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .diag-empty {
+      padding: 10px;
+      color: #bbb;
+      font-size: 11px;
+      text-align: center;
+    }
+    .diag-row {
+      display: grid;
+      grid-template-columns: 18px 110px 120px 1fr;
+      gap: 4px;
+      align-items: baseline;
+      padding: 3px 8px;
+      font-size: 10px;
+      border-bottom: 1px solid #f4f4f4;
+    }
+    .diag-row:last-child { border-bottom: none; }
+    .diag-icon { text-align: center; }
+    .diag-time { color: #bbb; font-family: monospace; }
+    .diag-type { font-weight: 600; font-family: monospace; }
+    .diag-note { color: #666; word-break: break-all; }
+
     /* 頁腳 */
     .footer {
       padding: 8px 14px;
@@ -461,6 +495,19 @@
         <span class="update-status" id="updateStatus"></span>
         <button id="checkUpdateBtn" class="btn btn-gray">檢查更新</button>
       </div>
+    </div>
+
+    <!-- 診斷 -->
+    <div class="setting-group">
+      <div class="setting-section-label">診斷</div>
+      <div class="diag-header">
+        <span class="setting-label">排程觸發記錄<small>確認鬧鐘是否正常運作</small></span>
+        <div style="display:flex;gap:6px">
+          <button id="clearDiagBtn" class="btn btn-gray">清除</button>
+          <button id="diagToggleBtn" class="btn btn-gray">顯示診斷</button>
+        </div>
+      </div>
+      <div id="diagPanel" style="display:none"></div>
     </div>
 
   </div>
