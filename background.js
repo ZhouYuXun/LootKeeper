@@ -144,6 +144,18 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     } else if (msg.type === "reschedule") {
         scheduleDaily();
         sendResponse({ status: "ok" });
+    } else if (msg.type === "getAlarmStatus") {
+        chrome.alarms.get("dailyClaim", (alarm) => {
+            sendResponse({
+                exists: !!alarm,
+                scheduledTime: alarm ? new Date(alarm.scheduledTime).toLocaleString("zh-TW", { hour12: false }) : null,
+                periodInMinutes: alarm?.periodInMinutes ?? null
+            });
+        });
+        return true;
+    } else if (msg.type === "forceReschedule") {
+        scheduleDaily();
+        sendResponse({ status: "ok" });
     } else if (msg.type === "checkAuth") {
         const tabId = sender.tab?.id;
         chrome.storage.session.get("lkAuthorizedTab", (data) => {

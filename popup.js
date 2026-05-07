@@ -291,6 +291,41 @@ document.getElementById("clearDiagBtn").addEventListener("click", () => {
     chrome.storage.local.remove("diagLog", () => renderDiag());
 });
 
+document.getElementById("queryAlarmBtn").addEventListener("click", () => {
+    const el = document.getElementById("alarmStatusText");
+    el.style.color = "#888";
+    el.textContent = "查詢中…";
+    chrome.runtime.sendMessage({ type: "getAlarmStatus" }, (res) => {
+        if (chrome.runtime.lastError || !res) {
+            el.style.color = "#c00";
+            el.textContent = "查詢失敗：" + (chrome.runtime.lastError?.message || "無回應");
+            return;
+        }
+        if (!res.exists) {
+            el.style.color = "#c00";
+            el.textContent = "❌ 鬧鐘不存在（dailyClaim alarm missing）";
+        } else {
+            el.style.color = "#1a7a1a";
+            el.textContent = `✓ 下次：${res.scheduledTime}　週期：${res.periodInMinutes} 分`;
+        }
+    });
+});
+
+document.getElementById("forceRescheduleBtn").addEventListener("click", () => {
+    const el = document.getElementById("alarmStatusText");
+    el.style.color = "#888";
+    el.textContent = "重設中…";
+    chrome.runtime.sendMessage({ type: "forceReschedule" }, (res) => {
+        if (chrome.runtime.lastError || !res) {
+            el.style.color = "#c00";
+            el.textContent = "重設失敗：" + (chrome.runtime.lastError?.message || "無回應");
+            return;
+        }
+        el.style.color = "#1a7a1a";
+        el.textContent = "已重設，點擊「查詢」確認新時間";
+    });
+});
+
 // ── 初始化 ────────────────────────────────────────────
 document.getElementById("currentVersion").textContent =
     "v" + chrome.runtime.getManifest().version;
