@@ -66,74 +66,92 @@ function runClaim() {
         return;
     }
     claimInProgress = true;
-    diag("run_start", "開始建立分頁");
 
-    chrome.tabs.create({ url: GIFT_URL }, (tab) => {
-        if (chrome.runtime.lastError || !tab) {
-            const err = chrome.runtime.lastError?.message || "tab=null";
-            diag("tab_fail", err);
-            claimInProgress = false;
-            return;
+    chrome.windows.getAll({}, (wins) => {
+        const winCount = wins ? wins.length : 0;
+        diag("run_start", `視窗數=${winCount}，開始建立分頁`);
+
+        if (winCount === 0) {
+            // 沒有視窗時建立最小化視窗，確保 content script 能正常注入
+            chrome.windows.create({ url: GIFT_URL, state: "minimized" }, (win) => {
+                if (chrome.runtime.lastError || !win?.tabs?.[0]) {
+                    diag("tab_fail", `windows.create失敗：${chrome.runtime.lastError?.message || "win=null"}`);
+                    claimInProgress = false;
+                    return;
+                }
+                _setupClaimTab(win.tabs[0]);
+            });
+        } else {
+            // 有視窗時在背景建立分頁，不搶奪焦點
+            chrome.tabs.create({ url: GIFT_URL, active: false }, (tab) => {
+                if (chrome.runtime.lastError || !tab) {
+                    diag("tab_fail", chrome.runtime.lastError?.message || "tab=null");
+                    claimInProgress = false;
+                    return;
+                }
+                _setupClaimTab(tab);
+            });
         }
-        const tabId = tab.id;
-        diag("tab_ok", `tabId=${tabId}`);
-        chrome.storage.session.set({ lkAuthorizedTab: tabId });
-        let closed = false;
-
-        // MV3 SW 30 秒閒置會被終止；每 20 秒呼叫一次 Chrome API 重置計時器
-        const keepAlive = setInterval(
-            () => chrome.storage.session.get("lkAuthorizedTab", () => {}),
-            20000
-        );
-
-        function stopKeepAlive() {
-            clearInterval(keepAlive);
-        }
-
-        function closeTab() {
-            if (closed) return;
-            closed = true;
-            claimInProgress = false;
-            chrome.storage.session.remove("lkAuthorizedTab");
-            chrome.tabs.remove(tabId, () => { chrome.runtime.lastError; });
-        }
-
-        const listener = (msg, sender) => {
-            if (msg.type === "claimDone" && sender.tab?.id === tabId) {
-                chrome.runtime.onMessage.removeListener(listener);
-                clearTimeout(fallbackTimer);
-                stopKeepAlive();
-                diag("claim_done", `results=${msg.log?.results?.length ?? 0}，error=${msg.log?.error ?? "無"}`);
-                if (msg.log) saveLog(msg.log);
-
-                chrome.storage.local.get("autoClose", (data) => {
-                    const shouldClose = data.autoClose !== undefined ? data.autoClose : false;
-                    if (shouldClose) closeTab();
-                    else {
-                        closed = true;
-                        claimInProgress = false;
-                        chrome.storage.session.remove("lkAuthorizedTab");
-                    }
-                });
-            }
-        };
-        chrome.runtime.onMessage.addListener(listener);
-
-        const fallbackTimer = setTimeout(() => {
-            chrome.runtime.onMessage.removeListener(listener);
-            stopKeepAlive();
-            if (!closed) {
-                diag("fallback", "25 秒未收到 claimDone");
-                claimInProgress = false;
-                saveLog({
-                    time: new Date().toLocaleString("zh-TW", { hour12: false }),
-                    results: [],
-                    error: "逾時（25 秒內頁面未回應）"
-                });
-                closeTab();
-            }
-        }, FALLBACK_CLOSE_MS);
     });
+}
+
+function _setupClaimTab(tab) {
+    const tabId = tab.id;
+    diag("tab_ok", `tabId=${tabId}`);
+    chrome.storage.session.set({ lkAuthorizedTab: tabId });
+    let closed = false;
+
+    // MV3 SW 30 秒閒置會被終止；每 20 秒呼叫一次 Chrome API 重置計時器
+    const keepAlive = setInterval(
+        () => chrome.storage.session.get("lkAuthorizedTab", () => {}),
+        20000
+    );
+
+    function stopKeepAlive() { clearInterval(keepAlive); }
+
+    function closeTab() {
+        if (closed) return;
+        closed = true;
+        claimInProgress = false;
+        chrome.storage.session.remove("lkAuthorizedTab");
+        chrome.tabs.remove(tabId, () => { chrome.runtime.lastError; });
+    }
+
+    const listener = (msg, sender) => {
+        if (msg.type === "claimDone" && sender.tab?.id === tabId) {
+            chrome.runtime.onMessage.removeListener(listener);
+            clearTimeout(fallbackTimer);
+            stopKeepAlive();
+            diag("claim_done", `results=${msg.log?.results?.length ?? 0}，error=${msg.log?.error ?? "無"}`);
+            if (msg.log) saveLog(msg.log);
+
+            chrome.storage.local.get("autoClose", (data) => {
+                const shouldClose = data.autoClose !== undefined ? data.autoClose : false;
+                if (shouldClose) closeTab();
+                else {
+                    closed = true;
+                    claimInProgress = false;
+                    chrome.storage.session.remove("lkAuthorizedTab");
+                }
+            });
+        }
+    };
+    chrome.runtime.onMessage.addListener(listener);
+
+    const fallbackTimer = setTimeout(() => {
+        chrome.runtime.onMessage.removeListener(listener);
+        stopKeepAlive();
+        if (!closed) {
+            diag("fallback", "25 秒未收到 claimDone");
+            claimInProgress = false;
+            saveLog({
+                time: new Date().toLocaleString("zh-TW", { hour12: false }),
+                results: [],
+                error: "逾時（25 秒內頁面未回應）"
+            });
+            closeTab();
+        }
+    }, FALLBACK_CLOSE_MS);
 }
 
 // 來自 popup / content script 的訊息
