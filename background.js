@@ -52,9 +52,19 @@ function runClaim() {
             return;
         }
         const tabId = tab.id;
-        // 用 session storage 授權，跨 SW 重啟仍存活
         chrome.storage.session.set({ lkAuthorizedTab: tabId });
         let closed = false;
+
+        // MV3 SW 30 秒閒置會被終止；每 20 秒呼叫一次 Chrome API 重置計時器，
+        // 確保 SW 在分頁載入完成並收到 claimDone 之前不被殺掉
+        const keepAlive = setInterval(
+            () => chrome.storage.session.get("lkAuthorizedTab", () => {}),
+            20000
+        );
+
+        function stopKeepAlive() {
+            clearInterval(keepAlive);
+        }
 
         function closeTab() {
             if (closed) return;
@@ -68,6 +78,7 @@ function runClaim() {
             if (msg.type === "claimDone" && sender.tab?.id === tabId) {
                 chrome.runtime.onMessage.removeListener(listener);
                 clearTimeout(fallbackTimer);
+                stopKeepAlive();
                 if (msg.log) saveLog(msg.log);
 
                 // 依設定決定是否關閉分頁
@@ -87,6 +98,7 @@ function runClaim() {
         // 逾時強制關閉（不論 autoClose 設定，避免分頁殭屍）
         const fallbackTimer = setTimeout(() => {
             chrome.runtime.onMessage.removeListener(listener);
+            stopKeepAlive();
             if (!closed) {
                 claimInProgress = false;
                 saveLog({
