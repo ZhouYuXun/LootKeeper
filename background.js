@@ -27,11 +27,9 @@ function scheduleDaily() {
         if (target.getTime() <= now.getTime()) {
             target.setDate(target.getDate() + 1);
         }
-        chrome.alarms.clear("dailyClaim", () => {
-            chrome.alarms.create("dailyClaim", {
-                when: target.getTime(),
-                periodInMinutes: 24 * 60
-            });
+        chrome.alarms.create("dailyClaim", {
+            when: target.getTime(),
+            periodInMinutes: 24 * 60
         });
     });
 }
@@ -50,6 +48,10 @@ function runClaim() {
     if (claimInProgress) return;
     claimInProgress = true;
     chrome.tabs.create({ url: GIFT_URL }, (tab) => {
+        if (chrome.runtime.lastError || !tab) {
+            claimInProgress = false;
+            return;
+        }
         const tabId = tab.id;
         authorizedTabs.add(tabId);
         let closed = false;
@@ -128,6 +130,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 });
 
 chrome.runtime.onStartup.addListener(() => {
+    scheduleDaily();
     chrome.storage.local.get(["lastClaim", "dailyEnabled"], (data) => {
         const enabled = data.dailyEnabled !== undefined ? data.dailyEnabled : true;
         if (!enabled) return;
