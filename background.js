@@ -3,7 +3,6 @@ const FALLBACK_CLOSE_MS = 25000;
 const DEFAULT_MAX_LOG = 3;
 const _BUILD_SIGNATURE = "LK-MRF-20260502-7f3a";
 
-const authorizedTabs = new Set();
 let claimInProgress = false;
 
 function today() {
@@ -53,14 +52,15 @@ function runClaim() {
             return;
         }
         const tabId = tab.id;
-        authorizedTabs.add(tabId);
+        // 用 session storage 授權，跨 SW 重啟仍存活
+        chrome.storage.session.set({ lkAuthorizedTab: tabId });
         let closed = false;
 
         function closeTab() {
             if (closed) return;
             closed = true;
             claimInProgress = false;
-            authorizedTabs.delete(tabId);
+            chrome.storage.session.remove("lkAuthorizedTab");
             chrome.tabs.remove(tabId, () => { chrome.runtime.lastError; });
         }
 
@@ -77,7 +77,7 @@ function runClaim() {
                     else {
                         closed = true;
                         claimInProgress = false;
-                        authorizedTabs.delete(tabId);
+                        chrome.storage.session.remove("lkAuthorizedTab");
                     }
                 });
             }
@@ -109,7 +109,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         scheduleDaily();
         sendResponse({ status: "ok" });
     } else if (msg.type === "checkAuth") {
-        sendResponse({ authorized: authorizedTabs.has(sender.tab?.id) });
+        chrome.storage.session.get("lkAuthorizedTab", (data) => {
+            sendResponse({ authorized: data.lkAuthorizedTab === sender.tab?.id });
+        });
+        return true; // 非同步回應需保持 channel 開啟
     }
 });
 
