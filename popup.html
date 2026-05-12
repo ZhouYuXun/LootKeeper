@@ -359,26 +359,59 @@
       border-radius: 6px;
       overflow: hidden;
     }
+    #diagContainer {
+      max-height: 320px;
+      overflow-y: auto;
+      background: #fff;
+    }
+    #diagContainer::-webkit-scrollbar { width: 6px; }
+    #diagContainer::-webkit-scrollbar-thumb { background: #ddd; border-radius: 3px; }
     .diag-empty {
-      padding: 10px;
+      padding: 14px;
       color: #bbb;
       font-size: 11px;
       text-align: center;
     }
     .diag-row {
       display: grid;
-      grid-template-columns: 18px 110px 120px 1fr;
-      gap: 4px;
-      align-items: baseline;
-      padding: 3px 8px;
+      grid-template-columns: 18px 1fr auto;
+      grid-template-areas:
+        "icon type time"
+        ".    note note";
+      column-gap: 6px;
+      row-gap: 2px;
+      padding: 5px 10px;
       font-size: 10px;
       border-bottom: 1px solid #f4f4f4;
+      align-items: baseline;
     }
     .diag-row:last-child { border-bottom: none; }
-    .diag-icon { text-align: center; }
-    .diag-time { color: #bbb; font-family: monospace; }
-    .diag-type { font-weight: 600; font-family: monospace; }
-    .diag-note { color: #666; word-break: break-all; }
+    .diag-row:hover { background: #fafafa; }
+    .diag-row.no-note { grid-template-areas: "icon type time"; }
+    .diag-icon { grid-area: icon; text-align: center; font-size: 11px; line-height: 1; }
+    .diag-type {
+      grid-area: type;
+      font-weight: 600;
+      font-family: monospace;
+      font-size: 10.5px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .diag-time {
+      grid-area: time;
+      color: #bbb;
+      font-family: monospace;
+      font-size: 9px;
+      white-space: nowrap;
+    }
+    .diag-note {
+      grid-area: note;
+      color: #666;
+      word-break: break-word;
+      line-height: 1.5;
+      padding-left: 2px;
+    }
 
     /* 頁腳 */
     .footer {

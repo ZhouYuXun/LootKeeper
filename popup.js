@@ -236,23 +236,53 @@ document.getElementById("checkUpdateBtn").addEventListener("click", checkUpdate)
 
 // ── 診斷日誌 ──────────────────────────────────────────
 const DIAG_TYPE_STYLE = {
-    alarm_fired:    { color: "#1a7a1a", icon: "🔔" },
-    alarm_skip:     { color: "#888",    icon: "⏭" },
-    run_start:      { color: "#1a7a1a", icon: "▶" },
-    run_blocked:    { color: "#e67e00", icon: "⛔" },
-    tab_ok:         { color: "#1a7a1a", icon: "🌐" },
-    tab_fail:       { color: "#c00",    icon: "❌" },
-    check_auth:     { color: "#555",    icon: "🔑" },
-    content_loaded: { color: "#555",    icon: "📄" },
-    claim_done:     { color: "#1a7a1a", icon: "✅" },
-    fallback:       { color: "#c00",    icon: "⏱" },
-    scheduled:      { color: "#555",    icon: "📅" },
-    schedule_off:   { color: "#888",    icon: "🔕" },
-    startup:        { color: "#555",    icon: "🚀" },
-    startup_claim:  { color: "#1a7a1a", icon: "🚀" },
-    startup_skip:   { color: "#888",    icon: "🚀" },
-    installed:      { color: "#555",    icon: "📦" },
+    alarm_fired:        { color: "#1a7a1a", icon: "🔔" },
+    alarm_skip:         { color: "#888",    icon: "⏭" },
+    run_start:          { color: "#1a7a1a", icon: "▶" },
+    run_blocked:        { color: "#e67e00", icon: "⛔" },
+    tab_ok:             { color: "#1a7a1a", icon: "🌐" },
+    tab_fail:           { color: "#c00",    icon: "❌" },
+    tab_fallback:       { color: "#e67e00", icon: "↩" },
+    sidebar_block:      { color: "#e67e00", icon: "⏸" },
+    sidebar_resume:     { color: "#1a7a1a", icon: "▶" },
+    pending_expired:    { color: "#888",    icon: "🗑" },
+    tab_close:          { color: "#555",    icon: "🚪" },
+    tab_keep:           { color: "#555",    icon: "📌" },
+    check_auth:         { color: "#555",    icon: "🔑" },
+    content_loaded:     { color: "#555",    icon: "📄" },
+    gift_icon_click:    { color: "#555",    icon: "👆" },
+    gift_icon_fail:     { color: "#c00",    icon: "🔍" },
+    gift_page_fail:     { color: "#c00",    icon: "🔍" },
+    gift_cards_found:   { color: "#1a7a1a", icon: "🎁" },
+    claim_done:         { color: "#1a7a1a", icon: "✅" },
+    claim_done_unauth:  { color: "#e67e00", icon: "⚠" },
+    fallback:           { color: "#c00",    icon: "⏱" },
+    fallback_recover:   { color: "#c00",    icon: "⏱" },
+    sw_recover:         { color: "#e67e00", icon: "♻" },
+    sw_cleanup:         { color: "#888",    icon: "🧹" },
+    missed_recover:     { color: "#e67e00", icon: "⏰" },
+    alarm_missing:      { color: "#c00",    icon: "⚠" },
+    heartbeat_create:   { color: "#555",    icon: "💓" },
+    heartbeat:          { color: "#888",    icon: "💓" },
+    sw_boot:            { color: "#1a7a1a", icon: "⚡" },
+    scheduled:          { color: "#555",    icon: "📅" },
+    schedule_off:       { color: "#888",    icon: "🔕" },
+    startup:            { color: "#555",    icon: "🚀" },
+    installed:          { color: "#555",    icon: "📦" },
 };
+
+// 將 "2026/5/11 13:28:33" 簡化為 "13:28:33"
+function shortTime(t) {
+    if (!t) return "";
+    const parts = String(t).split(" ");
+    return parts[parts.length - 1] || t;
+}
+
+function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    }[c]));
+}
 
 function renderDiag() {
     chrome.storage.local.get("diagLog", (data) => {
@@ -265,13 +295,15 @@ function renderDiag() {
         container.innerHTML = "";
         logs.forEach(entry => {
             const style = DIAG_TYPE_STYLE[entry.type] || { color: "#888", icon: "•" };
+            const hasNote = !!(entry.note && entry.note.length > 0);
             const row = document.createElement("div");
-            row.className = "diag-row";
+            row.className = "diag-row" + (hasNote ? "" : " no-note");
+            row.title = entry.t; // 完整時間放 tooltip
             row.innerHTML = `
               <span class="diag-icon">${style.icon}</span>
-              <span class="diag-time">${entry.t}</span>
-              <span class="diag-type" style="color:${style.color}">${entry.type}</span>
-              <span class="diag-note">${entry.note || ""}</span>
+              <span class="diag-type" style="color:${style.color}">${escapeHtml(entry.type)}</span>
+              <span class="diag-time">${escapeHtml(shortTime(entry.t))}</span>
+              ${hasNote ? `<span class="diag-note">${escapeHtml(entry.note)}</span>` : ""}
             `;
             container.appendChild(row);
         });
