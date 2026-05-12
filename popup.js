@@ -265,6 +265,12 @@ const DIAG_TYPE_STYLE = {
     heartbeat_create:   { color: "#555",    icon: "💓" },
     heartbeat:          { color: "#888",    icon: "💓" },
     sw_boot:            { color: "#1a7a1a", icon: "⚡" },
+    sw_suspend:         { color: "#888",    icon: "🌙" },
+    sw_suspend_cancel:  { color: "#1a7a1a", icon: "🌞" },
+    alarm_armed:        { color: "#1a7a1a", icon: "🔐" },
+    alarm_armed_fail:   { color: "#c00",    icon: "🔓" },
+    test_arm:           { color: "#1a7a1a", icon: "🧪" },
+    test_fired:         { color: "#1a7a1a", icon: "🧪" },
     scheduled:          { color: "#555",    icon: "📅" },
     schedule_off:       { color: "#888",    icon: "🔕" },
     startup:            { color: "#555",    icon: "🚀" },
@@ -340,6 +346,22 @@ document.getElementById("queryAlarmBtn").addEventListener("click", () => {
             el.style.color = "#1a7a1a";
             el.textContent = `✓ 下次：${res.scheduledTime}　週期：${res.periodInMinutes} 分`;
         }
+    });
+});
+
+document.getElementById("testWakeBtn").addEventListener("click", () => {
+    const el = document.getElementById("alarmStatusText");
+    el.style.color = "#888";
+    el.textContent = "排定 90 秒測試…";
+    chrome.runtime.sendMessage({ type: "armTestAlarm" }, (res) => {
+        if (chrome.runtime.lastError || !res) {
+            el.style.color = "#c00";
+            el.textContent = "排定失敗：" + (chrome.runtime.lastError?.message || "無回應");
+            return;
+        }
+        const at = new Date(res.when).toLocaleTimeString("zh-TW", { hour12: false });
+        el.style.color = "#1a7a1a";
+        el.textContent = `已排 ${at}，請關所有視窗等待，回來看是否有 test_fired`;
     });
 });
 

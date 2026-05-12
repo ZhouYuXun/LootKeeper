@@ -14,55 +14,76 @@ function today() {
 
 // ── 診斷日誌 ──────────────────────────────────────────
 const DIAG_LOG_MAX = 150;
+// 序列化寫入鏈：避免並發 read-modify-write 互相覆蓋
+// 返回 Promise 讓 event handler 可 await，延長 SW 生命週期直到 diag 落盤
+let _diagWriteChain = Promise.resolve();
 function diag(type, note = "") {
     const entry = {
         t: new Date().toLocaleString("zh-TW", { hour12: false }),
         type,
         note
     };
-    chrome.storage.local.get("diagLog", (data) => {
+    _diagWriteChain = _diagWriteChain.then(async () => {
+        const data = await chrome.storage.local.get("diagLog");
         const log = data.diagLog || [];
         log.unshift(entry);
         if (log.length > DIAG_LOG_MAX) log.length = DIAG_LOG_MAX;
-        chrome.storage.local.set({ diagLog: log });
-    });
+        await chrome.storage.local.set({ diagLog: log });
+    }).catch(() => {});  // 吞錯避免鏈斷掉
+    return _diagWriteChain;
 }
 
 // 取得當下視窗統計（normal / popup / panel / app / devtools）
-function _snapshotWindows(cb) {
-    chrome.windows.getAll({}, (wins) => {
-        const counts = {};
-        (wins || []).forEach(w => { counts[w.type] = (counts[w.type] || 0) + 1; });
-        const total = wins ? wins.length : 0;
-        const summary = Object.entries(counts).map(([k, v]) => `${k}=${v}`).join(",") || "無";
-        cb({ total, summary });
-    });
+async function _snapshotWindows() {
+    const wins = await chrome.windows.getAll({});
+    const counts = {};
+    (wins || []).forEach(w => { counts[w.type] = (counts[w.type] || 0) + 1; });
+    const total = wins ? wins.length : 0;
+    const summary = Object.entries(counts).map(([k, v]) => `${k}=${v}`).join(",") || "無";
+    return { total, summary };
 }
 
 // 讀取自訂時間後排程；若 dailyEnabled 為 false 則清除排程
+// 1 秒內的重複呼叫合併為單次執行，避免 reload 時 3 個入口同時觸發
+let _scheduleDailyPromise = null;
 function scheduleDaily() {
-    chrome.storage.local.get(["claimTime", "dailyEnabled"], (data) => {
-        const enabled = data.dailyEnabled !== undefined ? data.dailyEnabled : true;
-
-        if (!enabled) {
-            chrome.alarms.clear("dailyClaim");
-            diag("schedule_off", "dailyEnabled=false，已清除鬧鐘");
-            return;
-        }
-
-        const { hour = 5, minute = 10 } = data.claimTime || {};
-        const now = new Date();
-        const target = new Date();
-        target.setHours(hour, minute, 0, 0);
-        if (target.getTime() <= now.getTime()) {
-            target.setDate(target.getDate() + 1);
-        }
-        chrome.alarms.create("dailyClaim", {
-            when: target.getTime(),
-            periodInMinutes: 24 * 60
-        });
-        diag("scheduled", `下次觸發：${target.toLocaleString("zh-TW", { hour12: false })}`);
+    if (_scheduleDailyPromise) return _scheduleDailyPromise;
+    _scheduleDailyPromise = _scheduleDailyInner().finally(() => {
+        setTimeout(() => { _scheduleDailyPromise = null; }, 1000);
     });
+    return _scheduleDailyPromise;
+}
+async function _scheduleDailyInner() {
+    const data = await chrome.storage.local.get(["claimTime", "dailyEnabled"]);
+    const enabled = data.dailyEnabled !== undefined ? data.dailyEnabled : true;
+
+    if (!enabled) {
+        await chrome.alarms.clear("dailyClaim");
+        await diag("schedule_off", "dailyEnabled=false，已清除鬧鐘");
+        return;
+    }
+
+    const { hour = 5, minute = 10 } = data.claimTime || {};
+    const now = new Date();
+    const target = new Date();
+    target.setHours(hour, minute, 0, 0);
+    if (target.getTime() <= now.getTime()) {
+        target.setDate(target.getDate() + 1);
+    }
+    await chrome.alarms.create("dailyClaim", {
+        when: target.getTime(),
+        periodInMinutes: 24 * 60
+    });
+    await diag("scheduled", `下次觸發：${target.toLocaleString("zh-TW", { hour12: false })}`);
+
+    // 立刻回讀 alarm 確認 Chrome 真的接受排程
+    const alarm = await chrome.alarms.get("dailyClaim");
+    if (!alarm) {
+        await diag("alarm_armed_fail", "create 後立即 get 不到，Chrome 未接受排程");
+        return;
+    }
+    const deltaSec = Math.round((alarm.scheduledTime - Date.now()) / 1000);
+    await diag("alarm_armed", `Chrome 排定：${new Date(alarm.scheduledTime).toLocaleString("zh-TW", { hour12: false })}，${deltaSec}s 後觸發`);
 }
 
 function saveLog(entry) {
@@ -252,12 +273,13 @@ function ensureAlarmsExist() {
                 }
             });
         }
-        // 心跳鬧鐘：每 30 分鐘喚醒 SW 一次以執行 checkMissedClaim
-        // 作為 dailyClaim 在 MV3 中不可靠時的備援
+        // 心跳鬧鐘：定期喚醒 SW 執行 checkMissedClaim，並作為「SW 在無視窗時能否被喚醒」的探針
+        // 15 分鐘平衡省電與可靠性；改值需同步 README
         chrome.alarms.get("heartbeat", (alarm) => {
-            if (!alarm) {
-                chrome.alarms.create("heartbeat", { periodInMinutes: 30 });
-                diag("heartbeat_create", "建立心跳鬧鐘（每 30 分鐘）");
+            const needRecreate = !alarm || alarm.periodInMinutes !== 15;
+            if (needRecreate) {
+                chrome.alarms.create("heartbeat", { periodInMinutes: 15 });
+                diag("heartbeat_create", `建立心跳鬧鐘（每 15 分鐘）${alarm ? "，覆蓋舊週期 " + alarm.periodInMinutes + " 分" : ""}`);
             }
         });
     });
@@ -265,11 +287,26 @@ function ensureAlarmsExist() {
 
 // ── SW 啟動時自我檢查（每次 SW 喚醒都會執行） ─────────
 // 此 diag 是判斷 alarm 是否能在「Chrome 視窗關閉」狀態下喚醒 SW 的關鍵訊號
-_snapshotWindows(({ total, summary }) => {
-    chrome.storage.local.get("lastAlive", (data) => {
-        const gap = data.lastAlive ? Math.round((Date.now() - data.lastAlive) / 1000) : -1;
-        diag("sw_boot", `視窗：${summary}（共${total}），距上次存活：${gap >= 0 ? gap + "s" : "首次"}`);
-    });
+(async () => {
+    const { total, summary } = await _snapshotWindows();
+    const data = await chrome.storage.local.get("lastAlive");
+    const gap = data.lastAlive ? Math.round((Date.now() - data.lastAlive) / 1000) : -1;
+    const alarm = await chrome.alarms.get("dailyClaim");
+    const alarmInfo = alarm
+        ? `下次=${new Date(alarm.scheduledTime).toLocaleString("zh-TW", { hour12: false })}`
+        : "下次=無";
+    await diag(
+        "sw_boot",
+        `視窗：${summary}（共${total}），距上次存活：${gap >= 0 ? gap + "s" : "首次"}，${alarmInfo}`
+    );
+})();
+
+// SW 終止 / 取消終止：證明 SW 是否正常壽終、是否能被 event 救活
+chrome.runtime.onSuspend.addListener(() => {
+    diag("sw_suspend", "SW 即將終止");
+});
+chrome.runtime.onSuspendCanceled.addListener(() => {
+    diag("sw_suspend_cancel", "SW 終止被取消（有 event 介入）");
 });
 
 let startupChecksDone = false;
@@ -351,6 +388,15 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     } else if (msg.type === "forceReschedule") {
         scheduleDaily();
         sendResponse({ status: "ok" });
+    } else if (msg.type === "armTestAlarm") {
+        // 排 90 秒後一次性 alarm，僅供診斷「無視窗背景模式」是否能喚醒 SW
+        (async () => {
+            const when = Date.now() + 90 * 1000;
+            await chrome.alarms.create("testWake", { when });
+            await diag("test_arm", `90s 後觸發：${new Date(when).toLocaleString("zh-TW", { hour12: false })}`);
+            sendResponse({ status: "armed", when });
+        })();
+        return true;
     } else if (msg.type === "checkAuth") {
         const tabId = sender.tab?.id;
         chrome.storage.session.get("lkAuthorizedTab", (data) => {
@@ -366,37 +412,37 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
 chrome.runtime.onInstalled.addListener((details) => {
     diag("installed", `reason=${details.reason}`);
-    scheduleDaily();
+    // top-level runStartupChecks() 已涵蓋 ensureAlarmsExist；
+    // 此處單獨 ensureAlarmsExist() 處理 reload 時 alarm 可能被清空的情況
+    // scheduleDaily 自身有 1 秒去重鎖，多次呼叫只執行一次
     ensureAlarmsExist();
 });
 
-chrome.alarms.onAlarm.addListener((alarm) => {
+// async handler：await diag 讓 SW 保持運行直到日誌落盤
+chrome.alarms.onAlarm.addListener(async (alarm) => {
     if (alarm.name === "dailyClaim") {
         const drift = Math.round((Date.now() - alarm.scheduledTime) / 1000);
-        _snapshotWindows(({ summary }) => {
-            diag(
-                "alarm_fired",
-                `預定=${new Date(alarm.scheduledTime).toLocaleString("zh-TW", { hour12: false })}，` +
-                `延遲=${drift}s，視窗：${summary}`
-            );
-        });
-        chrome.storage.local.get("dailyEnabled", (data) => {
-            const enabled = data.dailyEnabled !== undefined ? data.dailyEnabled : true;
-            if (!enabled) {
-                diag("alarm_skip", "dailyEnabled=false");
-                return;
-            }
-            // 鬧鐘響＝使用者意圖的權威觸發，不檢查 lastClaim。
-            // lastClaim 由 _finishClaim 在實際完成時寫入；失敗則下次心跳再試
-            runClaim();
-        });
+        const { summary } = await _snapshotWindows();
+        await diag(
+            "alarm_fired",
+            `預定=${new Date(alarm.scheduledTime).toLocaleString("zh-TW", { hour12: false })}，` +
+            `延遲=${drift}s，視窗：${summary}`
+        );
+        const data = await chrome.storage.local.get("dailyEnabled");
+        const enabled = data.dailyEnabled !== undefined ? data.dailyEnabled : true;
+        if (!enabled) {
+            await diag("alarm_skip", "dailyEnabled=false");
+            return;
+        }
+        runClaim();
+    } else if (alarm.name === "testWake") {
+        const drift = Math.round((Date.now() - alarm.scheduledTime) / 1000);
+        const { summary } = await _snapshotWindows();
+        await diag("test_fired", `延遲=${drift}s，視窗：${summary} — 證明 SW 可在無視窗時被喚醒`);
     } else if (alarm.name === "heartbeat") {
-        // 心跳：證明 SW 仍能被 chrome.alarms 喚醒（背景模式診斷核心訊號）
-        // 寫入 lastAlive 供下次 sw_boot 計算間隔
-        chrome.storage.local.set({ lastAlive: Date.now() });
-        _snapshotWindows(({ summary }) => {
-            diag("heartbeat", `視窗：${summary}`);
-        });
+        await chrome.storage.local.set({ lastAlive: Date.now() });
+        const { summary } = await _snapshotWindows();
+        await diag("heartbeat", `視窗：${summary}`);
         checkMissedClaim();
     }
 });
