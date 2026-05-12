@@ -4,7 +4,6 @@ const DEFAULT_MAX_LOG = 3;
 
 // ── 模組層級領取狀態（SW 重啟後重設，不可依賴持久性） ──────────────
 let claimInProgress = false;
-let claimTabId = null;
 let claimFallbackTimer = null;
 let claimKeepalive = null;
 
@@ -101,7 +100,6 @@ function _finishClaim(tabId, log, errorMsg, forceClose) {
     if (claimFallbackTimer) { clearTimeout(claimFallbackTimer); claimFallbackTimer = null; }
     if (claimKeepalive) { clearInterval(claimKeepalive); claimKeepalive = null; }
     claimInProgress = false;
-    claimTabId = null;
     chrome.storage.session.remove("lkAuthorizedTab");
 
     if (errorMsg) {
@@ -221,7 +219,6 @@ chrome.windows.onCreated.addListener((window) => {
 
 function _setupClaimTab(tab) {
     const tabId = tab.id;
-    claimTabId = tabId;
     diag("tab_ok", `tabId=${tabId}`);
     chrome.storage.session.set({ lkAuthorizedTab: tabId });
 
@@ -261,7 +258,7 @@ function checkMissedClaim() {
     });
 }
 
-// ── 確保鬧鐘存在（含心跳備援鬧鐘） ────────────────────
+// ── 確保鬧鐘存在 ──────────────────────────────────────
 function ensureAlarmsExist() {
     chrome.storage.local.get("dailyEnabled", (data) => {
         const enabled = data.dailyEnabled !== undefined ? data.dailyEnabled : true;
@@ -273,20 +270,13 @@ function ensureAlarmsExist() {
                 }
             });
         }
-        // 心跳鬧鐘：定期喚醒 SW 執行 checkMissedClaim，並作為「SW 在無視窗時能否被喚醒」的探針
-        // 15 分鐘平衡省電與可靠性；改值需同步 README
-        chrome.alarms.get("heartbeat", (alarm) => {
-            const needRecreate = !alarm || alarm.periodInMinutes !== 15;
-            if (needRecreate) {
-                chrome.alarms.create("heartbeat", { periodInMinutes: 15 });
-                diag("heartbeat_create", `建立心跳鬧鐘（每 15 分鐘）${alarm ? "，覆蓋舊週期 " + alarm.periodInMinutes + " 分" : ""}`);
-            }
-        });
+        // 舊版升級遷移：移除 v2.9 以前的 heartbeat 鬧鐘殘留
+        chrome.alarms.clear("heartbeat");
     });
 }
 
 // ── SW 啟動時自我檢查（每次 SW 喚醒都會執行） ─────────
-// 此 diag 是判斷 alarm 是否能在「Chrome 視窗關閉」狀態下喚醒 SW 的關鍵訊號
+// sw_boot 自己寫 lastAlive，提供「距上次喚醒」訊號協助排查
 (async () => {
     const { total, summary } = await _snapshotWindows();
     const data = await chrome.storage.local.get("lastAlive");
@@ -295,19 +285,12 @@ function ensureAlarmsExist() {
     const alarmInfo = alarm
         ? `下次=${new Date(alarm.scheduledTime).toLocaleString("zh-TW", { hour12: false })}`
         : "下次=無";
+    await chrome.storage.local.set({ lastAlive: Date.now() });
     await diag(
         "sw_boot",
-        `視窗：${summary}（共${total}），距上次存活：${gap >= 0 ? gap + "s" : "首次"}，${alarmInfo}`
+        `視窗：${summary}（共${total}），距上次喚醒：${gap >= 0 ? gap + "s" : "首次"}，${alarmInfo}`
     );
 })();
-
-// SW 終止 / 取消終止：證明 SW 是否正常壽終、是否能被 event 救活
-chrome.runtime.onSuspend.addListener(() => {
-    diag("sw_suspend", "SW 即將終止");
-});
-chrome.runtime.onSuspendCanceled.addListener(() => {
-    diag("sw_suspend_cancel", "SW 終止被取消（有 event 介入）");
-});
 
 let startupChecksDone = false;
 function runStartupChecks() {
@@ -339,7 +322,6 @@ chrome.storage.session.get("lkAuthorizedTab", (data) => {
 
             diag("sw_recover", `tabId=${orphanTabId}，SW重啟，重建監聽與逾時保護`);
             claimInProgress = true;
-            claimTabId = orphanTabId;
 
             claimKeepalive = setInterval(
                 () => chrome.storage.session.get("lkAuthorizedTab", () => {}),
@@ -439,11 +421,6 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
         const drift = Math.round((Date.now() - alarm.scheduledTime) / 1000);
         const { summary } = await _snapshotWindows();
         await diag("test_fired", `延遲=${drift}s，視窗：${summary} — 證明 SW 可在無視窗時被喚醒`);
-    } else if (alarm.name === "heartbeat") {
-        await chrome.storage.local.set({ lastAlive: Date.now() });
-        const { summary } = await _snapshotWindows();
-        await diag("heartbeat", `視窗：${summary}`);
-        checkMissedClaim();
     }
 });
 
