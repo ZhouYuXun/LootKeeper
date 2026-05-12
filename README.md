@@ -202,6 +202,28 @@
 
 </details>
 
+<details>
+<summary>Edge 使用者：診斷紀錄出現 <code>sidebar_block</code>？</summary>
+<br>
+
+Edge 在「**只剩側邊欄、沒有主視窗**」的狀態下（俗稱 standalone sidebar mode），會拒絕擴充套件建立新分頁或視窗。alarm 觸發時若 Edge 正處於此狀態，就會出現 `sidebar_block`。
+
+**自動補救：** 套件會記下待領狀態，等下次你打開任何一般 Edge 視窗時，於 12 小時內自動補領（診斷紀錄會看到 `sidebar_resume`）。所以這個錯誤**不會漏領**。
+
+**徹底解法（建議 Edge 使用者）：** 透過註冊表停用側邊欄，可避免同步設定再把它打開。
+
+1. **Win + R** → 輸入 `regedit` → Enter
+2. 展開到 `HKEY_CURRENT_USER\SOFTWARE\Policies\Microsoft\Edge`（若沒有 `Microsoft` / `Edge` 機碼，依序右鍵新增）
+3. 右側空白處右鍵 → 新增 → **DWORD (32 位元) 值** → 命名 `HubsSidebarEnabled` → 數值資料 `0`
+4. 回到 Edge，網址列輸入 `edge://policy` → 點左上角「**重新載入原則**」
+5. 取消勾選「顯示沒有值的原則」，應看到 `HubsSidebarEnabled = 0`
+
+恢復方式：把 `HubsSidebarEnabled` 那筆值刪除，回到 `edge://policy` 點「重新載入原則」即可。
+
+> 此設定屬 Microsoft 官方原則（[HubsSidebarEnabled](https://learn.microsoft.com/en-us/deployedge/microsoft-edge-policies#hubssidebarenabled)），不影響 Edge 其他功能。
+
+</details>
+
 ---
 
 <div align="center">
