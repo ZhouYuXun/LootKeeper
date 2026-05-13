@@ -22,26 +22,27 @@
 
 1. 前往 [GitHub 頁面](https://github.com/ZhouYuXun/LootKeeper)，點綠色「**Code**」→ **Download ZIP**
 2. 解壓縮到一個**不會被刪掉**的位置（例如 `Documents\LootKeeper`）
-3. 載入到瀏覽器：
+3. 載入到瀏覽器（依使用的瀏覽器展開）：
 
-<table>
-<tr>
-<td width="50%">
+<details>
+<summary><b>Microsoft Edge</b></summary>
 
-**Edge**
+1. 網址列輸入 `edge://extensions` 並按 Enter
+2. 開啟左側「**開發人員模式**」
+3. 點「**載入解壓縮**」→ 選擇解壓縮後的資料夾
+4. 出現「LootKeeper」卡片即完成
 
-`edge://extensions` → 開啟左側「**開發人員模式**」→ 點「**載入解壓縮**」→ 選資料夾
+</details>
 
-</td>
-<td width="50%">
+<details>
+<summary><b>Google Chrome</b></summary>
 
-**Chrome**
+1. 網址列輸入 `chrome://extensions` 並按 Enter
+2. 開啟右上「**開發人員模式**」
+3. 點「**載入未封裝項目**」→ 選擇解壓縮後的資料夾
+4. 出現「LootKeeper」卡片即完成
 
-`chrome://extensions` → 開啟右上「**開發人員模式**」→ 點「**載入未封裝項目**」→ 選資料夾
-
-</td>
-</tr>
-</table>
+</details>
 
 ### Step 2 · 登入逆水寒會員中心
 
@@ -51,26 +52,29 @@
 
 > ⚠️ 不開啟這個設定，每天自動領取**不會**運作。只想用「立即領取」按鈕的話可以跳過。
 
-<table>
-<tr>
-<td width="50%">
+依使用的瀏覽器展開：
 
-**Edge**
+<details>
+<summary><b>Microsoft Edge</b></summary>
 
-開啟 `edge://settings/system`，把「**Microsoft Edge 關閉時，繼續執行背景延伸模組和應用程式**」切到開啟。
+1. 網址列輸入 `edge://settings/system` 並按 Enter
+2. 找到「**Microsoft Edge 關閉時，繼續執行背景延伸模組和應用程式**」
+3. 切換為**開啟**
 
-</td>
-<td width="50%">
+> 不同版本字串略有差異，可能顯示為「關閉 Microsoft Edge 時繼續執行背景延伸模組和應用程式」，是同一個選項。
 
-**Chrome**
+</details>
 
-開啟 `chrome://settings/system`，把「**關閉 Google Chrome 後繼續執行背景應用程式**」切到開啟。
+<details>
+<summary><b>Google Chrome</b></summary>
 
-</td>
-</tr>
-</table>
+1. 網址列輸入 `chrome://settings/system` 並按 Enter
+2. 找到「**關閉 Google Chrome 後繼續執行背景應用程式**」
+3. 切換為**開啟**
 
-**確認生效：** 關掉所有瀏覽器視窗後，開啟**工作管理員**（Ctrl + Shift + Esc）→「程序」分頁，應該還能看到 `Microsoft Edge` 或 `Google Chrome` 的背景程序仍在執行。
+</details>
+
+**確認生效：** 關掉所有瀏覽器視窗後，按 `Ctrl + Shift + Esc` 開啟**工作管理員** →「程序」分頁，應該還能看到 `Microsoft Edge` 或 `Google Chrome` 的背景程序仍在執行。
 
 ---
 
@@ -113,7 +117,6 @@
 
 <details>
 <summary><b>更新到新版</b></summary>
-<br>
 
 1. 設定分頁 → **檢查更新** → 若有新版點「前往下載」
 2. 下載新 ZIP，解壓縮並**覆蓋**原資料夾
@@ -125,7 +128,6 @@
 
 <details>
 <summary><b>完整移除</b></summary>
-<br>
 
 1. 擴充套件管理頁 → 點「**移除**」
 2. 刪除安裝資料夾
@@ -140,7 +142,6 @@
 
 <details>
 <summary><b>每天自動領取沒有觸發？</b></summary>
-<br>
 
 依序檢查：
 
@@ -153,15 +154,13 @@
 
 <details>
 <summary><b>「找不到禮包圖示」？</b></summary>
-<br>
 
-最常見是未登入遊戲帳號，請先在瀏覽器登入再試。
+最常見是未登入逆水寒會員中心，請先在瀏覽器登入再試。
 
 </details>
 
 <details>
 <summary><b>「逾時（35 秒內頁面未回應）」？</b></summary>
-<br>
 
 頁面載入過慢或網路不穩，稍後手動點「立即領取」重試即可。
 
@@ -169,7 +168,6 @@
 
 <details>
 <summary><b>手動開啟禮包頁面，套件不會自動領？</b></summary>
-<br>
 
 套件只在**它自己開啟**的分頁中運作，你手動輸入網址打開的分頁不會觸發。這是刻意的安全設計，避免誤動其他分頁。
 
@@ -183,7 +181,6 @@
 
 <details>
 <summary><b>診斷面板說明</b></summary>
-<br>
 
 設定分頁底部點「**顯示診斷**」展開。
 
@@ -205,7 +202,6 @@
 
 <details>
 <summary><b>Edge 出現 <code>sidebar_block</code> 怎麼辦？</b></summary>
-<br>
 
 **狀況：** Edge 在「只剩側邊欄、沒有主視窗」的狀態下，會擋下擴充套件建立新分頁。若排程剛好在這個狀態觸發，就會出現 `sidebar_block`。
 
@@ -228,7 +224,6 @@
 
 <details>
 <summary><b>功能特性一覽</b></summary>
-<br>
 
 - ⏰ **定時領取** — 每天在設定時間自動開啟禮包頁面，依序領取
 - 🔄 **開機補領** — 排程時間瀏覽器未開啟，下次啟動自動補領當天
