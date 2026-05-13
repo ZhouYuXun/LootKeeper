@@ -96,7 +96,7 @@
 
 <br>
 
-### 三個分頁
+<h3 align="center">三個分頁</h3>
 
 <div align="center">
 
@@ -118,7 +118,7 @@
 
 <br>
 
-### 設定選項
+<h3 align="center">設定選項</h3>
 
 <div align="center">
 
@@ -143,7 +143,7 @@
 
 <br>
 
-### 看懂記錄狀態
+<h3 align="center">看懂記錄狀態</h3>
 
 <div align="center">
 
