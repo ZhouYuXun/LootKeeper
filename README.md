@@ -24,6 +24,8 @@
 
 從 [GitHub 頁面](https://github.com/ZhouYuXun/LootKeeper) 點綠色「**Code**」→ **Download ZIP**，解壓縮到一個**不會被刪掉**的位置（例如 `Documents\LootKeeper`），然後依下方步驟載入瀏覽器。
 
+<br>
+
 <details>
 <summary><b>Microsoft Edge</b></summary>
 
@@ -57,6 +59,8 @@
 ### Step 3 · 開啟瀏覽器的「背景執行」
 
 > ⚠️ 不開啟這個設定，每天自動領取**不會**運作。只想用「立即領取」按鈕的話可以跳過。
+
+<br>
 
 <details>
 <summary><b>Microsoft Edge</b></summary>
@@ -94,10 +98,12 @@
 
 ### 三個分頁
 
-<table width="100%">
+<div align="center">
+
+<table>
 <thead>
 <tr>
-<th align="center" width="20%">分頁</th>
+<th align="center">分頁</th>
 <th align="center">用途</th>
 </tr>
 </thead>
@@ -108,15 +114,19 @@
 </tbody>
 </table>
 
+</div>
+
 <br>
 
 ### 設定選項
 
-<table width="100%">
+<div align="center">
+
+<table>
 <thead>
 <tr>
-<th align="center" width="25%">項目</th>
-<th align="center" width="15%">預設</th>
+<th align="center">項目</th>
+<th align="center">預設</th>
 <th align="center">說明</th>
 </tr>
 </thead>
@@ -129,14 +139,18 @@
 </tbody>
 </table>
 
+</div>
+
 <br>
 
 ### 看懂記錄狀態
 
-<table width="100%">
+<div align="center">
+
+<table>
 <thead>
 <tr>
-<th align="center" width="25%">顏色</th>
+<th align="center">顏色</th>
 <th align="center">意思</th>
 </tr>
 </thead>
@@ -147,6 +161,8 @@
 <tr><td align="center">⬜ 無色</td><td align="center">本次沒有可領取的項目（已領過或未解鎖）</td></tr>
 </tbody>
 </table>
+
+</div>
 
 <p align="center">單項標籤：<b>✓ 成功</b> / <b>已領過</b> / <b>未解鎖</b></p>
 
@@ -233,10 +249,12 @@
 
 設定分頁底部點「**顯示診斷**」展開。
 
-<table width="100%">
+<div align="center">
+
+<table>
 <thead>
 <tr>
-<th align="center" width="30%">元素</th>
+<th align="center">元素</th>
 <th align="center">用途</th>
 </tr>
 </thead>
@@ -247,6 +265,8 @@
 <tr><td align="center">清除</td><td align="center">清空觸發記錄</td></tr>
 </tbody>
 </table>
+
+</div>
 
 常見事件代碼：
 
