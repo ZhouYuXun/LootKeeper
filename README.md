@@ -12,17 +12,17 @@
 
 </div>
 
----
+<br>
 
-## 快速上手（3 步驟）
+<h2 align="center">快速上手</h2>
 
-> 跟著做完這三步，每天自動領取就會開始運作。
+<p align="center">跟著做完這三步，每天自動領取就會開始運作。</p>
 
-### Step 1 · 安裝擴充套件
+<br>
 
-1. 前往 [GitHub 頁面](https://github.com/ZhouYuXun/LootKeeper)，點綠色「**Code**」→ **Download ZIP**
-2. 解壓縮到一個**不會被刪掉**的位置（例如 `Documents\LootKeeper`）
-3. 載入到瀏覽器（依使用的瀏覽器展開）：
+### Step 1 · 下載並安裝擴充套件
+
+從 [GitHub 頁面](https://github.com/ZhouYuXun/LootKeeper) 點綠色「**Code**」→ **Download ZIP**，解壓縮到一個**不會被刪掉**的位置（例如 `Documents\LootKeeper`），然後依下方步驟載入瀏覽器。
 
 <details>
 <summary><b>Microsoft Edge</b></summary>
@@ -34,6 +34,8 @@
 
 </details>
 
+<br>
+
 <details>
 <summary><b>Google Chrome</b></summary>
 
@@ -44,15 +46,17 @@
 
 </details>
 
+<br>
+
 ### Step 2 · 登入逆水寒會員中心
 
-在瀏覽器中登入**逆水寒會員中心**，**未登入時擴充套件無法領取**。
+在瀏覽器中登入**逆水寒會員中心**。未登入時擴充套件無法領取，「立即領取」與自動領取都會失敗。
 
-### Step 3 · 開啟「背景執行」
+<br>
+
+### Step 3 · 開啟瀏覽器的「背景執行」
 
 > ⚠️ 不開啟這個設定，每天自動領取**不會**運作。只想用「立即領取」按鈕的話可以跳過。
-
-依使用的瀏覽器展開：
 
 <details>
 <summary><b>Microsoft Edge</b></summary>
@@ -65,6 +69,8 @@
 
 </details>
 
+<br>
+
 <details>
 <summary><b>Google Chrome</b></summary>
 
@@ -74,46 +80,79 @@
 
 </details>
 
+<br>
+
 **確認生效：** 關掉所有瀏覽器視窗後，按 `Ctrl + Shift + Esc` 開啟**工作管理員** →「程序」分頁，應該還能看到 `Microsoft Edge` 或 `Google Chrome` 的背景程序仍在執行。
 
----
+<br>
 
-## 使用方式
+<h2 align="center">使用方式</h2>
 
-點擊工具列的 LootKeeper 圖示開啟控制面板。
+<p align="center">點擊工具列的 LootKeeper 圖示開啟控制面板。</p>
+
+<br>
 
 ### 三個分頁
 
-| 分頁 | 用途 |
-|------|------|
-| **記錄** | 看最近幾次的領取結果，按「立即領取」可手動觸發 |
-| **設定** | 調整排程時間、自動領取開關、版本檢查 |
-| **贊助** | 支持作者 |
+<table width="100%">
+<thead>
+<tr>
+<th align="center" width="20%">分頁</th>
+<th align="center">用途</th>
+</tr>
+</thead>
+<tbody>
+<tr><td align="center"><b>記錄</b></td><td align="center">看最近幾次的領取結果，按「立即領取」可手動觸發</td></tr>
+<tr><td align="center"><b>設定</b></td><td align="center">調整排程時間、自動領取開關、版本檢查</td></tr>
+<tr><td align="center"><b>贊助</b></td><td align="center">支持作者</td></tr>
+</tbody>
+</table>
+
+<br>
 
 ### 設定選項
 
-| 項目 | 預設 | 說明 |
-|------|------|------|
-| 每日自動領取 | 開啟 | 關閉後僅保留手動領取 |
-| 每日執行時間 | 05:10 | 修改後按「儲存」立即重新排程 |
-| 領取後關閉頁面 | 關閉 | 完成後自動關閉禮包分頁 |
-| 歷史紀錄筆數 | 3 | 保留幾筆執行記錄 |
-| 檢查更新 | — | 比對遠端版本，有新版顯示下載連結 |
+<table width="100%">
+<thead>
+<tr>
+<th align="center" width="25%">項目</th>
+<th align="center" width="15%">預設</th>
+<th align="center">說明</th>
+</tr>
+</thead>
+<tbody>
+<tr><td align="center">每日自動領取</td><td align="center">開啟</td><td align="center">關閉後僅保留手動領取</td></tr>
+<tr><td align="center">每日執行時間</td><td align="center">05:10</td><td align="center">修改後按「儲存」立即重新排程</td></tr>
+<tr><td align="center">領取後關閉頁面</td><td align="center">關閉</td><td align="center">完成後自動關閉禮包分頁</td></tr>
+<tr><td align="center">歷史紀錄筆數</td><td align="center">3</td><td align="center">保留幾筆執行記錄</td></tr>
+<tr><td align="center">檢查更新</td><td align="center">—</td><td align="center">比對遠端版本，有新版顯示下載連結</td></tr>
+</tbody>
+</table>
+
+<br>
 
 ### 看懂記錄狀態
 
-| 顏色 | 意思 |
-|------|------|
-| 🟢 綠色 | 全部成功 |
-| 🟠 橘色 | 部分成功 |
-| 🔴 紅色 | 執行失敗 |
-| ⬜ 無色 | 本次沒有可領取的項目（已領過或未解鎖） |
+<table width="100%">
+<thead>
+<tr>
+<th align="center" width="25%">顏色</th>
+<th align="center">意思</th>
+</tr>
+</thead>
+<tbody>
+<tr><td align="center">🟢 綠色</td><td align="center">全部成功</td></tr>
+<tr><td align="center">🟠 橘色</td><td align="center">部分成功</td></tr>
+<tr><td align="center">🔴 紅色</td><td align="center">執行失敗</td></tr>
+<tr><td align="center">⬜ 無色</td><td align="center">本次沒有可領取的項目（已領過或未解鎖）</td></tr>
+</tbody>
+</table>
 
-單項標籤：**✓ 成功** / **已領過** / **未解鎖**
+<p align="center">單項標籤：<b>✓ 成功</b> / <b>已領過</b> / <b>未解鎖</b></p>
 
----
+<br>
 
-## 更新與移除
+<h2 align="center">更新與移除</h2>
 
 <details>
 <summary><b>更新到新版</b></summary>
@@ -126,6 +165,8 @@
 
 </details>
 
+<br>
+
 <details>
 <summary><b>完整移除</b></summary>
 
@@ -136,9 +177,9 @@
 
 </details>
 
----
+<br>
 
-## 常見問題
+<h2 align="center">常見問題</h2>
 
 <details>
 <summary><b>每天自動領取沒有觸發？</b></summary>
@@ -146,11 +187,13 @@
 依序檢查：
 
 1. 設定中的「**每日自動領取**」開關是否開啟
-2. [背景執行](#step-3--開啟背景執行)是否開啟（**最常見原因**）
+2. [背景執行](#step-3--開啟瀏覽器的背景執行)是否開啟（**最常見原因**）
 3. 排程時間到的當下，工作管理員裡瀏覽器背景程序是否還在
 4. 設定分頁底部「**顯示診斷**」展開後，是否有 `alarm_fired` 紀錄
 
 </details>
+
+<br>
 
 <details>
 <summary><b>「找不到禮包圖示」？</b></summary>
@@ -159,12 +202,16 @@
 
 </details>
 
+<br>
+
 <details>
 <summary><b>「逾時（35 秒內頁面未回應）」？</b></summary>
 
 頁面載入過慢或網路不穩，稍後手動點「立即領取」重試即可。
 
 </details>
+
+<br>
 
 <details>
 <summary><b>手動開啟禮包頁面，套件不會自動領？</b></summary>
@@ -173,23 +220,33 @@
 
 </details>
 
----
+<br>
 
-## 進階
+<h2 align="center">進階</h2>
 
-> 一般使用不需要看這一段。遇到自動領取異常、或想進一步調整 Edge 行為時再展開。
+<p align="center">一般使用不需要看這一段。遇到自動領取異常、或想進一步調整 Edge 行為時再展開。</p>
+
+<br>
 
 <details>
 <summary><b>診斷面板說明</b></summary>
 
 設定分頁底部點「**顯示診斷**」展開。
 
-| 元素 | 用途 |
-|------|------|
-| 鬧鐘狀態 · 查詢 | 顯示下次自動觸發時間 |
-| 鬧鐘狀態 · 重設 | 若時間設定變更後沒套用，可手動重建排程 |
-| 觸發記錄 | 最近 150 筆事件（排程觸發、SW 喚醒、視窗狀態） |
-| 清除 | 清空觸發記錄 |
+<table width="100%">
+<thead>
+<tr>
+<th align="center" width="30%">元素</th>
+<th align="center">用途</th>
+</tr>
+</thead>
+<tbody>
+<tr><td align="center">鬧鐘狀態 · 查詢</td><td align="center">顯示下次自動觸發時間</td></tr>
+<tr><td align="center">鬧鐘狀態 · 重設</td><td align="center">若時間設定變更後沒套用，可手動重建排程</td></tr>
+<tr><td align="center">觸發記錄</td><td align="center">最近 150 筆事件（排程觸發、SW 喚醒、視窗狀態）</td></tr>
+<tr><td align="center">清除</td><td align="center">清空觸發記錄</td></tr>
+</tbody>
+</table>
 
 常見事件代碼：
 
@@ -199,6 +256,8 @@
 - `sidebar_resume` — 從側邊欄狀態恢復後完成補領
 
 </details>
+
+<br>
 
 <details>
 <summary><b>Edge 出現 <code>sidebar_block</code> 怎麼辦？</b></summary>
@@ -222,6 +281,8 @@
 
 </details>
 
+<br>
+
 <details>
 <summary><b>功能特性一覽</b></summary>
 
@@ -236,7 +297,7 @@
 
 </details>
 
----
+<br>
 
 <div align="center">
 
