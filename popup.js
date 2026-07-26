@@ -336,6 +336,7 @@ const DIAG_TYPE_STYLE = {
     queue_done:         { color: "#1a7a1a", icon: "🏁" },
     migrated:           { color: "#555",    icon: "🔄" },
     login_required:     { color: "#c00",    icon: "🔒" },
+    login_span:         { color: "#0a6",    icon: "⏳" },
     update_check:       { color: "#555",    icon: "🔎" },
     update_check_fail:  { color: "#e67e00", icon: "🔎" },
     auth_probe:         { color: "#0a6",    icon: "🍪" },
@@ -497,10 +498,36 @@ function fmtHours(h) {
     return `${h} 小時`;
 }
 
+// 觀測到的登入維持時間：不依賴憑證格式，是這個站唯一可靠的答案來源
+function renderLoginSpans(spans) {
+    if (!spans) return "";
+    const parts = [];
+
+    if (spans.okSince) {
+        const h = (Date.now() - spans.okSince) / 3600000;
+        parts.push(`本次登入已維持至少 <b>${fmtHours(Number(h.toFixed(1)))}</b>`);
+    }
+    if (spans.spans?.length) {
+        const hs = spans.spans.map(s => s.hours);
+        const min = Math.min(...hs), max = Math.max(...hs);
+        const range = min === max ? fmtHours(min) : `${fmtHours(min)} ～ ${fmtHours(max)}`;
+        parts.push(`過去 ${hs.length} 次觀測：<b>${range}</b>`);
+    }
+    if (parts.length === 0) return "";
+
+    return `<div class="auth-headline">${parts.join("<br>")}` +
+        '<div class="auth-sub">此為「至少」值：計時從擴充套件首次確認登入有效時開始，實際登入時刻更早</div></div>';
+}
+
 function renderAuthProbe(probe) {
     const box = document.getElementById("authProbe");
+    const spanHtml = renderLoginSpans(probe?.loginSpans);
+
     if (!probe || (probe.cookies.length === 0 && probe.web.length === 0)) {
-        box.innerHTML = '<div class="auth-empty">讀不到登入憑證，可能尚未登入官網</div>';
+        box.innerHTML = spanHtml ||
+            '<div class="auth-empty">讀不到登入憑證，可能尚未登入官網</div>';
+        document.getElementById("grantLoginDomainBtn").style.display =
+            probe?.extended ? "none" : "";
         return;
     }
 
@@ -546,15 +573,16 @@ function renderAuthProbe(probe) {
         }</span>
       </div>`).join("");
 
-    // 讀不到本站 cookie 是重要線索，不能只是「沒東西」而不說
-    const note = probe.cookies.length === 0
-        ? '<div class="auth-sub auth-warn-text">未讀到本站 cookie，登入憑證位於網易通行證網域</div>'
-        : "";
+    // 掃了哪些網域、各拿到幾筆——區分「沒授權」與「授權了但真的沒有」
+    const note = probe.cookies.length > 0 ? "" : probe.extended
+        ? '<div class="auth-sub auth-warn-text">已授權登入網域但仍讀不到任何 cookie，此站的登入態不使用 cookie</div>'
+        : '<div class="auth-sub auth-warn-text">未讀到本站 cookie，可授權登入網域再試</div>';
 
     // 尚未授權登入網域時，把申請按鈕顯示出來
     document.getElementById("grantLoginDomainBtn").style.display = probe.extended ? "none" : "";
 
-    box.innerHTML = `<div class="auth-headline">${headline}</div>${rows}${note}
+    // 觀測結果放最前面：它才是真正回答「登入能撐多久」的那一段
+    box.innerHTML = `${spanHtml}<div class="auth-headline">${headline}</div>${rows}${note}
       <div class="auth-time">查詢時間：${escapeHtml(probe.at || "—")}</div>`;
 }
 

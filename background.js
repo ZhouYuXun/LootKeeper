@@ -146,9 +146,11 @@ async function probeAuth(tag, quiet = false) {
     if (result.extended) filters.push({ domain: "163.com" }, { domain: "easebar.com" });
 
     const seen = new Set();
+    result.scanned = [];
     for (const filter of filters) {
         try {
             const cookies = await chrome.cookies.getAll(filter);
+            result.scanned.push({ domain: filter.domain, count: (cookies || []).length });
             for (const c of cookies || []) {
                 const id = `${c.domain}|${c.name}`;
                 if (seen.has(id)) continue;
@@ -163,9 +165,13 @@ async function probeAuth(tag, quiet = false) {
                 });
             }
         } catch (e) {
+            result.scanned.push({ domain: filter.domain, count: -1 });
             await diag("auth_probe_fail", `${tag} / ${filter.domain}：${e?.message || e}`);
         }
     }
+
+    const { loginSpans } = await chrome.storage.local.get("loginSpans");
+    result.loginSpans = loginSpans || { okSince: null, spans: [] };
 
     // 保留上次由 content script 掃出的 web storage 結果（cookie 單獨查詢時不清掉）
     const prev = await chrome.storage.local.get("authProbe");
@@ -174,13 +180,15 @@ async function probeAuth(tag, quiet = false) {
 
     if (quiet) return result;
 
+    // 掃描明細寫進診斷：區分「沒授權所以沒掃」與「掃了但這個網域真的沒有 cookie」
+    const scanText = result.scanned.map(s =>
+        `${s.domain}=${s.count < 0 ? "無權限" : s.count}`).join(" ");
     const jwtHit = result.cookies.find(c => c.jwtExpHours !== null);
-    const summary = result.cookies.length === 0
-        ? "讀不到任何 cookie（可能未登入）"
-        : jwtHit
-            ? `${jwtHit.name} JWT 剩 ${jwtHit.jwtExpHours}h（有效期 ${jwtLifetimeText(jwtHit)}）`
-            : `${result.cookies.length} 個 cookie，無 JWT 格式：` +
-              result.cookies.map(c => `${c.name}=${c.cookieExpHours === null ? "session" : c.cookieExpHours + "h"}`).join(" ");
+    const summary = jwtHit
+        ? `${jwtHit.name} JWT 剩 ${jwtHit.jwtExpHours}h（有效期 ${jwtLifetimeText(jwtHit)}）`
+        : result.cookies.length === 0
+            ? `無 cookie（登入網域${result.extended ? "已授權" : "未授權"}）掃描：${scanText}`
+            : `${result.cookies.length} 個 cookie 但無 JWT｜掃描：${scanText}`;
     await diag("auth_probe", `${tag}：${summary}`);
     return result;
 }
@@ -261,6 +269,38 @@ async function checkUpdate(force = false) {
         await diag("update_check_fail", next.error);
         return { ...next, local, cached: false };
     }
+}
+
+// ── 登入維持時間觀測 ──────────────────────────────────
+// 這個站的登入態不放 cookie，若又是不透明的 session ID，憑證身上根本沒有
+// 編碼到期時間——那不是權限問題，是原理上讀不到。
+//
+// 因此改用直接觀測：記錄「最後一次確認還登入著」到「第一次偵測到需重新登入」
+// 的間隔。不管憑證放哪、是不是 JWT 都成立。
+//
+// 注意這是**下限**：okSince 是我們第一次「看到」還登入著的時間，
+// 使用者實際登入的時刻更早，因此顯示時必須講明是「至少」。
+const LOGIN_SPAN_MAX = 5;
+
+async function recordLoginAlive() {
+    const { loginSpans } = await chrome.storage.local.get("loginSpans");
+    const s = loginSpans || { okSince: null, spans: [] };
+    if (s.okSince) return; // 已在計時中
+    s.okSince = Date.now();
+    await chrome.storage.local.set({ loginSpans: s });
+}
+
+async function recordLoginEnded() {
+    const { loginSpans } = await chrome.storage.local.get("loginSpans");
+    const s = loginSpans || { okSince: null, spans: [] };
+    if (s.okSince) {
+        const hours = Number(((Date.now() - s.okSince) / 3600000).toFixed(1));
+        s.spans.unshift({ from: s.okSince, to: Date.now(), hours });
+        if (s.spans.length > LOGIN_SPAN_MAX) s.spans.length = LOGIN_SPAN_MAX;
+        await diag("login_span", `本次登入至少維持 ${hours}h`);
+    }
+    s.okSince = null;
+    await chrome.storage.local.set({ loginSpans: s });
 }
 
 // ── 未登入通知 ────────────────────────────────────────
@@ -447,9 +487,12 @@ async function _finishClaim(tabId, log, errorMsg, forceClose) {
 
         if (log.loginRequired && target) {
             // 登入過期不算完成，不寫 lastClaim；改為通知使用者處理
+            await recordLoginEnded();
             await notifyLoginRequired(target);
             await probeAuth("登入過期時");
         } else if (targetId) {
+            // 頁面有回應且非未登入 = 當下確實還登入著
+            await recordLoginAlive();
             // 唯一寫入點：實際完成領取（即使 log.error 也代表頁面有回應，當日不再重試）
             const data = await chrome.storage.local.get("lastClaim");
             const last = data.lastClaim || {};

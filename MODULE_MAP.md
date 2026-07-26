@@ -67,6 +67,7 @@ v3.0 新增簽到時就撞在這裡，所以第 4 步會直接擋下。
 | `claimLog` | `[{ time, target, targetName, results, error, loginRequired }]` | 每個目標一筆 |
 | `diagLog` | `[{ t, type, note }]` | 上限 150 筆 |
 | `updateInfo` | `{ remote, hasUpdate, checkedAt, notifiedFor, error }` | 版本比對只在 background，popup 純顯示 |
+| `loginSpans` | `{ okSince: number\|null, spans: [{ from, to, hours }] }` | 登入維持時間觀測，最多 5 筆。`hours` 是**下限**（計時起點是首次確認登入有效，非實際登入時刻） |
 | `authProbe` | `{ at, cookies: [{ name, domain, cookieExpHours, jwtExpHours, jwtLifetimeHours }], web: [{ key, jwtExpHours, jwtLifetimeHours }] }` | 登入時效量測。**只存時間，絕不存憑證值** |
 
 ### `chrome.storage.session`

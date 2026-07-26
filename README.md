@@ -4,7 +4,7 @@
 
 **Chrome / Edge 擴充套件 · 每天自動領取《逆水寒》的禮包與簽到**
 
-![version](https://img.shields.io/badge/版本-v3.4-4caf50?style=flat-square)
+![version](https://img.shields.io/badge/版本-v3.5-4caf50?style=flat-square)
 ![license](https://img.shields.io/badge/授權-自訂非商業-ed8936?style=flat-square)
 ![chrome](https://img.shields.io/badge/Chrome-支援-4285F4?style=flat-square&logo=googlechrome&logoColor=white)
 ![edge](https://img.shields.io/badge/Edge-支援-0078D7?style=flat-square&logo=microsoftedge&logoColor=white)
@@ -159,7 +159,7 @@
 </thead>
 <tbody>
 <tr><td align="center">領取目標</td><td align="center">全部開啟</td><td align="center">個別開關 VIP 禮包 / 每週簽到，並顯示各自今日狀態</td></tr>
-<tr><td align="center">登入狀態</td><td align="center">—</td><td align="center">顯示登入憑證還剩多久，開啟面板即自動查詢</td></tr>
+<tr><td align="center">登入狀態</td><td align="center">—</td><td align="center">顯示登入能維持多久（依實際觀測累積），開啟面板即自動查詢</td></tr>
 <tr><td align="center">每日自動領取</td><td align="center">開啟</td><td align="center">關閉後僅保留手動領取</td></tr>
 <tr><td align="center">每日執行時間</td><td align="center">05:10</td><td align="center">改完按「儲存」立即重新排程</td></tr>
 <tr><td align="center">領取後關閉頁面</td><td align="center">關閉</td><td align="center">完成後自動關掉領取分頁</td></tr>
@@ -284,6 +284,7 @@ git clone https://github.com/ZhouYuXun/LootKeeper.git
 - `alarm_fired` — 排程時間到，已觸發
 - `sw_boot` — Service Worker 喚醒
 - `login_required` — 偵測到登入過期
+- `login_span` — 記錄下這次登入維持了多久
 - `sidebar_block` / `sidebar_resume` — Edge 側邊欄擋下開分頁 / 之後補領完成（見下方）
 
 </details>
@@ -291,13 +292,19 @@ git clone https://github.com/ZhouYuXun/LootKeeper.git
 <br>
 
 <details>
-<summary><b>查出登入憑證真正的到期時間</b></summary>
+<summary><b>「登入能撐多久」是怎麼算出來的</b></summary>
 
-官網網域下讀不到登入 cookie——登入態存放在**網易通行證的網域**。
+**主要來源是直接觀測**：套件記錄「最後一次確認登入仍有效」到「第一次偵測到需重新登入」的間隔，累積最近 5 次。這個方法不管憑證放在哪、是不是 JWT 都成立。
 
-若想查出真正的到期時間，「登入狀態」區塊會出現一顆授權按鈕，**按下才會向瀏覽器申請讀取 `163.com` / `easebar.com` 的權限**。安裝時不會索取，也可隨時在瀏覽器的擴充功能設定收回。
+顯示的是**「至少」值**——計時從套件首次確認登入有效時開始，你實際登入的時刻更早。
 
-> 一樣只解出到期時間，不讀取、不儲存、不顯示憑證內容。
+<br>
+
+**次要來源是憑證本身**：若登入憑證是 JWT，可以直接解出到期時間。但實測這個站的登入態不放在官網網域的 cookie 裡，找到的只有 localStorage 中的角色 token。若登入態是不透明的 session ID，它身上就沒有編碼到期時間，這條路走不通。
+
+「登入狀態」區塊會提供一顆授權按鈕，可申請讀取 `163.com` / `easebar.com` 以擴大搜尋範圍。安裝時不會索取這個權限，也可隨時在瀏覽器的擴充功能設定收回；若授權後仍顯示讀不到 cookie，代表這條路對此站無效，收回即可。
+
+> 兩種方式都只取出時間，不讀取、不儲存、不顯示憑證內容。
 
 </details>
 
