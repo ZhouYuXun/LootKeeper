@@ -4,7 +4,7 @@
 
 **Chrome / Edge 擴充套件 · 每天定時自動領取《逆水寒》會員中心禮包與每週簽到**
 
-![version](https://img.shields.io/badge/版本-v3.0-4caf50?style=flat-square)
+![version](https://img.shields.io/badge/版本-v3.1-4caf50?style=flat-square)
 ![license](https://img.shields.io/badge/授權-自訂非商業-ed8936?style=flat-square)
 ![chrome](https://img.shields.io/badge/Chrome-支援-4285F4?style=flat-square&logo=googlechrome&logoColor=white)
 ![edge](https://img.shields.io/badge/Edge-支援-0078D7?style=flat-square&logo=microsoftedge&logoColor=white)
@@ -24,7 +24,7 @@
 
 從 [GitHub 頁面](https://github.com/ZhouYuXun/LootKeeper) 點綠色「**Code**」→ **Download ZIP**，解壓縮到一個**不會被刪掉**的位置（例如 `Documents\LootKeeper`），然後依下方步驟載入瀏覽器。
 
-> **從 v2.x 升級**：v3.0 新增兩個權限——**通知**（登入過期時提醒你）與 **Cookie**（讀取登入的剩餘有效時間寫入診斷記錄，**只記名稱與時數，不讀內容**）。瀏覽器會要求你重新確認權限，這是正常的。原有設定與記錄會自動遷移。
+> **從 v2.x 升級**：v3 新增兩個權限——**通知**（登入過期時提醒你）與 **Cookie**（用來算出登入憑證的剩餘有效時間，**只取出到期時間，不儲存也不顯示憑證內容**）。瀏覽器會要求你重新確認權限，這是正常的。原有設定與記錄會自動遷移。
 
 <br>
 
@@ -219,9 +219,13 @@
 <br>
 
 <details>
-<summary><b>「找不到禮包圖示」？</b></summary>
+<summary><b>記錄顯示「需登入」？</b></summary>
 
-最常見是未登入逆水寒會員中心，請先在瀏覽器登入再試。
+官網登入已過期。點記錄頁上方的橘色橫幅（或桌面通知）即可開啟官網重新登入，登入後按「立即領取」補領即可。
+
+想知道登入還能撐多久，展開**診斷 → 登入時效**。
+
+> v3.0 以前這種情況會誤報成「找不到禮包圖示」或「導向失敗」，因為未登入時禮包圖示其實仍然存在。現在改為直接判定登入狀態。
 
 </details>
 
@@ -268,6 +272,7 @@
 <tbody>
 <tr><td align="center">鬧鐘狀態 · 查詢</td><td align="center">顯示下次自動觸發時間</td></tr>
 <tr><td align="center">鬧鐘狀態 · 重設</td><td align="center">若時間設定變更後沒套用，可手動重建排程</td></tr>
+<tr><td align="center">鬧鐘狀態 · 登入時效</td><td align="center">顯示登入憑證的剩餘有效時間與簽發後總有效期（只讀到期時間，不讀憑證內容）</td></tr>
 <tr><td align="center">觸發記錄</td><td align="center">最近 150 筆事件（排程觸發、SW 喚醒、視窗狀態）</td></tr>
 <tr><td align="center">清除</td><td align="center">清空觸發記錄</td></tr>
 </tbody>
@@ -313,7 +318,9 @@
 <details>
 <summary><b>功能特性一覽</b></summary>
 
-- ⏰ **定時領取** — 每天在設定時間自動開啟禮包頁面，依序領取
+- 🎯 **多目標** — VIP 禮包與每週簽到依序領取，可個別開關
+- 🔒 **登入偵測** — 登入過期時跳桌面通知與橫幅，並可查看憑證剩餘時效
+- ⏰ **定時領取** — 每天在設定時間自動開啟頁面，依序領取
 - 🔄 **開機補領** — 排程時間瀏覽器未開啟，下次啟動自動補領當天
 - 🌙 **背景領取** — 視窗全關時也會以最小化視窗執行
 - 🖱️ **手動觸發** — 隨時點工具列圖示立即領取，無次數限制

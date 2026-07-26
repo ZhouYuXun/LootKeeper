@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "LootKeeper",
-  "version": "3.0",
+  "version": "3.1",
   "description": "每天定時自動領取《逆水寒》VIP 禮包與每週簽到，支援補領、手動觸發、自訂時間、登入過期通知與執行記錄。作者：墨染楓（瑤光聽雪）。",
   "permissions": ["alarms", "tabs", "storage", "windows", "notifications", "cookies"],
   "host_permissions": [
