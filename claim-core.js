@@ -60,6 +60,55 @@ function waitForElement(selector, timeout = 8000) {
     return waitForAny([selector], timeout).then(r => r.el);
 }
 
+// ── 登入時效量測（頁面端） ────────────────────────────
+// background 讀得到 HttpOnly cookie，但讀不到頁面的 localStorage；
+// 兩邊都掃才涵蓋得完整。只回報 key 與時間欄位，絕不回傳 token 內容。
+function decodeJwtTimes(value) {
+    if (typeof value !== "string" || value.length < 20) return null;
+    const parts = value.split(".");
+    if (parts.length !== 3) return null;
+    try {
+        const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+        const payload = JSON.parse(atob(b64 + "=".repeat((4 - (b64.length % 4)) % 4)));
+        if (typeof payload.exp !== "number") return null;
+        return { exp: payload.exp, iat: typeof payload.iat === "number" ? payload.iat : null };
+    } catch {
+        return null;
+    }
+}
+
+function probeWebStorage() {
+    const items = [];
+    const now = Date.now() / 1000;
+    for (const store of [localStorage, sessionStorage]) {
+        for (const key of Object.keys(store)) {
+            let raw = store.getItem(key);
+            // token 常被包在 JSON 物件的某個欄位裡，往下找一層
+            const candidates = [raw];
+            try {
+                const parsed = JSON.parse(raw);
+                if (parsed && typeof parsed === "object") {
+                    candidates.push(...Object.values(parsed).filter(v => typeof v === "string"));
+                }
+            } catch { /* 不是 JSON，用原字串即可 */ }
+
+            for (const c of candidates) {
+                const jwt = decodeJwtTimes(c);
+                if (!jwt) continue;
+                items.push({
+                    key,
+                    jwtExpHours: Number(((jwt.exp - now) / 3600).toFixed(1)),
+                    jwtLifetimeHours: jwt.iat ? Number(((jwt.exp - jwt.iat) / 3600).toFixed(1)) : null
+                });
+                break;
+            }
+        }
+    }
+    if (items.length > 0) {
+        chrome.runtime.sendMessage({ type: "authProbeWeb", items });
+    }
+}
+
 async function runTarget(target) {
     const log = {
         time: new Date().toLocaleString("zh-TW", { hour12: false }),
@@ -96,6 +145,9 @@ async function runTarget(target) {
         diagStep("login_required", `${target.id}：命中 ${target.loggedOut}`);
         return log;
     }
+
+    // 已登入才有 token 可量測
+    probeWebStorage();
 
     const handler = LK.handlers[target.id];
     if (!handler) {

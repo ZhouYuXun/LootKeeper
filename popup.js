@@ -339,8 +339,8 @@ const DIAG_TYPE_STYLE = {
     queue_done:         { color: "#1a7a1a", icon: "🏁" },
     migrated:           { color: "#555",    icon: "🔄" },
     login_required:     { color: "#c00",    icon: "🔒" },
-    cookie_probe:       { color: "#0a6",    icon: "🍪" },
-    cookie_probe_fail:  { color: "#c00",    icon: "🍪" },
+    auth_probe:         { color: "#0a6",    icon: "🍪" },
+    auth_probe_fail:    { color: "#c00",    icon: "🍪" },
     notify_fail:        { color: "#e67e00", icon: "🔕" },
     page_timeout:       { color: "#c00",    icon: "⏳" },
     handler_missing:    { color: "#c00",    icon: "❓" },
@@ -427,7 +427,12 @@ document.getElementById("diagToggleBtn").addEventListener("click", () => {
     const hidden = panel.style.display === "none";
     panel.style.display = hidden ? "" : "none";
     btn.textContent = hidden ? "隱藏診斷" : "顯示診斷";
-    if (hidden) renderDiag();
+    if (hidden) {
+        renderDiag();
+        chrome.runtime.sendMessage({ type: "getAuthProbe" }, (probe) => {
+            if (!chrome.runtime.lastError) renderAuthProbe(probe);
+        });
+    }
 });
 
 document.getElementById("clearDiagBtn").addEventListener("click", () => {
@@ -487,18 +492,61 @@ document.getElementById("forceRescheduleBtn").addEventListener("click", () => {
 
 // 讀取登入 cookie 剩餘時效，寫入診斷記錄
 // 用於驗證「登入態撐不到一天」的假設，只記錄名稱與剩餘時數
+// ── 登入時效顯示 ──────────────────────────────────────
+// 三個數字意義不同：cookie 何時被瀏覽器丟掉、token 何時被伺服器判定失效、
+// token 簽發到失效的總長度（直接回答「有效期是不是小於一天」）
+function fmtHours(h) {
+    if (h === null || h === undefined) return "—";
+    if (h < 0) return `已過期 ${Math.abs(h).toFixed(1)}h`;
+    if (h < 1) return `${Math.round(h * 60)} 分`;
+    if (h > 48) return `${(h / 24).toFixed(1)} 天`;
+    return `${h} 小時`;
+}
+
+function renderAuthProbe(probe) {
+    const box = document.getElementById("authProbe");
+    if (!probe || (probe.cookies.length === 0 && probe.web.length === 0)) {
+        box.innerHTML = '<div class="auth-empty">尚無資料，請按「登入時效」查詢（需先登入官網）</div>';
+        return;
+    }
+
+    // 以最早到期者作為結論：那才是實際失效時間
+    const all = [
+        ...probe.cookies.map(c => ({ label: c.name, exp: c.jwtExpHours, life: c.jwtLifetimeHours, cookieExp: c.cookieExpHours })),
+        ...probe.web.map(w => ({ label: w.key, exp: w.jwtExpHours, life: w.jwtLifetimeHours, cookieExp: null }))
+    ];
+    const jwts = all.filter(i => i.exp !== null && i.exp !== undefined);
+
+    let headline;
+    if (jwts.length === 0) {
+        headline = '<span class="auth-warn">找不到 JWT 格式的憑證</span>　登入態可能是伺服器端 session（無法從本機讀出到期時間）';
+    } else {
+        const soonest = jwts.reduce((a, b) => (a.exp <= b.exp ? a : b));
+        const cls = soonest.exp < 0 ? "auth-bad" : soonest.exp < 6 ? "auth-warn" : "auth-ok";
+        headline = `登入憑證 <b>${escapeHtml(soonest.label)}</b> <span class="${cls}">剩 ${fmtHours(soonest.exp)}</span>`
+            + (soonest.life !== null ? `　·　簽發後有效期 <b>${fmtHours(soonest.life)}</b>` : "");
+    }
+
+    const rows = all.map(i => `
+      <div class="auth-row">
+        <span class="auth-key">${escapeHtml(i.label)}</span>
+        <span class="auth-val">token ${fmtHours(i.exp)}　/　cookie ${i.cookieExp === null ? "session" : fmtHours(i.cookieExp)}</span>
+      </div>`).join("");
+
+    box.innerHTML = `<div class="auth-headline">${headline}</div>${rows}
+      <div class="auth-time">查詢時間：${escapeHtml(probe.at || "—")}</div>`;
+}
+
 document.getElementById("probeCookieBtn").addEventListener("click", () => {
-    const el = document.getElementById("alarmStatusText");
-    el.style.color = "#888";
-    el.textContent = "讀取中…";
-    chrome.runtime.sendMessage({ type: "probeCookies" }, () => {
-        if (chrome.runtime.lastError) {
-            el.style.color = "#c00";
-            el.textContent = "讀取失敗：" + chrome.runtime.lastError.message;
+    const box = document.getElementById("authProbe");
+    box.innerHTML = '<div class="auth-empty">讀取中…</div>';
+    chrome.runtime.sendMessage({ type: "probeAuth" }, (res) => {
+        if (chrome.runtime.lastError || !res) {
+            box.innerHTML = '<div class="auth-empty">讀取失敗：' +
+                escapeHtml(chrome.runtime.lastError?.message || "無回應") + "</div>";
             return;
         }
-        el.style.color = "#1a7a1a";
-        el.textContent = "已寫入診斷記錄，見下方 cookie_probe";
+        renderAuthProbe(res.result);
         renderDiag();
     });
 });

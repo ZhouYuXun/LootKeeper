@@ -456,6 +456,20 @@
     .target-state.done { color: #1a7a1a; }
     .target-state.pending { color: #999; }
     .target-state.login { color: #c00; }
+
+    /* 登入時效面板 */
+    .auth-empty { font-size: 10px; color: #999; }
+    .auth-headline { font-size: 11px; color: #444; line-height: 1.6; margin-bottom: 3px; }
+    .auth-ok { color: #1a7a1a; font-weight: 600; }
+    .auth-warn { color: #e67e00; font-weight: 600; }
+    .auth-bad { color: #c00; font-weight: 600; }
+    .auth-row {
+      display: flex; justify-content: space-between; gap: 8px;
+      font-size: 10px; font-family: monospace; color: #777; padding: 1px 0;
+    }
+    .auth-key { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 45%; }
+    .auth-val { white-space: nowrap; }
+    .auth-time { font-size: 9px; color: #aaa; margin-top: 3px; }
   </style>
 </head>
 <body>
@@ -585,10 +599,14 @@
               <button id="queryAlarmBtn" class="btn btn-gray" style="font-size:10px;padding:2px 7px">查詢</button>
               <button id="forceRescheduleBtn" class="btn btn-gray" style="font-size:10px;padding:2px 7px">重設</button>
               <button id="testWakeBtn" class="btn btn-gray" style="font-size:10px;padding:2px 7px" title="90 秒後排一次性 alarm，用於測試背景喚醒">測試</button>
-              <button id="probeCookieBtn" class="btn btn-gray" style="font-size:10px;padding:2px 7px" title="讀取官網登入 cookie 的剩餘有效時間，寫入下方診斷記錄（只記名稱與時數，不記內容）">登入</button>
+              <button id="probeCookieBtn" class="btn btn-gray" style="font-size:10px;padding:2px 7px" title="讀取登入憑證的剩餘有效時間（只解出到期時間，不讀取也不儲存憑證內容）">登入時效</button>
             </div>
           </div>
           <div id="alarmStatusText" style="font-size:10px;color:#888;margin-top:3px;font-family:monospace;word-break:break-all"></div>
+        </div>
+        <div style="padding:5px 8px 6px;background:#fafafa;border-bottom:1px solid #eee">
+          <div style="font-size:11px;color:#888;margin-bottom:3px">登入時效</div>
+          <div id="authProbe"></div>
         </div>
         <div id="diagContainer"></div>
       </div>

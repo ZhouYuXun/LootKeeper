@@ -9,7 +9,12 @@
 | `targets.js` | 領取目標註冊表 `TARGETS`，以及 `findTargetByUrl` / `getTarget` / `targetMatchesUrl` | background.js（`importScripts`）、所有 content script（注入順序第一位） |
 | `claim-core.js` | content script 共用骨架：`LK.register`、`waitForAny`、`waitForElement`、`sleep`、`diagStep`，以及「授權驗證 → 等待渲染 → 登入判定 → 執行流程 → 回報」的完整生命週期 | `claim-vip.js`、`claim-checkin.js` |
 | `tools/check-consistency.mjs` | 靜態守門：targets.js ↔ manifest.json ↔ handler 檔的一致性 | `npm run check` |
+| `tools/test-jwt.mjs` | `decodeJwtTimes` 的行為測試 —— 同時驗證兩份實作正確且一致 | `npm run check` |
 | `tools/gen-icon.mjs` | 無外部相依的 PNG 產生器 | `npm run icons` |
+
+> `decodeJwtTimes` 在 `background.js` 與 `claim-core.js` 各有一份：service worker 與
+> content script 是兩個執行環境、兩個 classic script，無法共用模組。這是刻意的重複，
+> 由 `tools/test-jwt.mjs` 守住兩者不漂移。
 
 ## 檔案職責
 
@@ -41,5 +46,6 @@ background.js、popup.js **不需要任何改動**：排程、佇列、記錄、
 | `pendingClaim` | `{ at: number, queue: string[] }` | Edge sidebar 限制下的待執行佇列。v2.x 為時間戳數字 |
 | `claimLog` | `[{ time, target, targetName, results, error, loginRequired }]` | 每個目標一筆 |
 | `diagLog` | `[{ t, type, note }]` | 上限 150 筆 |
+| `authProbe` | `{ at, cookies: [{ name, domain, cookieExpHours, jwtExpHours, jwtLifetimeHours }], web: [{ key, jwtExpHours, jwtLifetimeHours }] }` | 登入時效量測結果。**只存時間，絕不存憑證值** |
 
 `chrome.storage.session`：`lkAuthorizedTab`（授權分頁 id）、`lkActiveTarget`（當前目標）、`lkQueue`（剩餘佇列，SW 重啟後仍可續跑）。

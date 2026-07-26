@@ -86,27 +86,78 @@ async function _snapshotWindows() {
     return { total, summary };
 }
 
-// ── 登入 cookie 到期量測 ──────────────────────────────
-// 目的：驗證「登入態撐不到一天」的假設。網站登入 cookie 為 HttpOnly，
-// 網頁 JS 讀不到，只有擴充功能的 cookies API 讀得到 expirationDate。
-// 只記錄名稱與剩餘時數，絕不記錄 cookie 值。
-async function probeCookies(tag) {
+// ── 登入時效量測 ──────────────────────────────────────
+// 目的：驗證「登入態撐不到一天」的假設，並直接顯示實際到期時刻。
+//
+// 網站登入 cookie 是 HttpOnly，網頁 JS 讀不到，但擴充功能的 cookies API
+// 讀得到「值」——若值是 JWT，就能解出伺服器認定的 exp。
+//
+// 安全界線：cookie 值與 token 內容是憑證，只取出時間欄位（exp / iat），
+// 絕不寫入 storage、diagLog 或畫面。
+
+// 解析 JWT 的時間欄位；不是 JWT 則回傳 null
+// 只讀 payload 的 exp / iat，不保留其餘任何 claim
+function decodeJwtTimes(value) {
+    if (typeof value !== "string") return null;
+    const parts = value.split(".");
+    if (parts.length !== 3) return null;
+    try {
+        const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+        const pad = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
+        const payload = JSON.parse(atob(pad));
+        if (typeof payload.exp !== "number") return null;
+        return {
+            exp: payload.exp,
+            iat: typeof payload.iat === "number" ? payload.iat : null
+        };
+    } catch {
+        return null;
+    }
+}
+
+const hoursFrom = (sec) => Number(((sec - Date.now() / 1000) / 3600).toFixed(1));
+
+async function probeAuth(tag) {
+    const result = {
+        at: new Date().toLocaleString("zh-TW", { hour12: false }),
+        cookies: [],
+        web: []
+    };
+
     try {
         const cookies = await chrome.cookies.getAll({ url: "https://www.swordofjustice.com/" });
-        if (!cookies || cookies.length === 0) {
-            await diag("cookie_probe", `${tag}：讀不到任何 cookie`);
-            return;
+        for (const c of cookies || []) {
+            const jwt = decodeJwtTimes(c.value);
+            result.cookies.push({
+                name: c.name,
+                domain: c.domain,
+                cookieExpHours: c.expirationDate ? hoursFrom(c.expirationDate) : null,
+                jwtExpHours: jwt ? hoursFrom(jwt.exp) : null,
+                jwtLifetimeHours: jwt?.iat ? Number(((jwt.exp - jwt.iat) / 3600).toFixed(1)) : null
+            });
         }
-        const now = Date.now() / 1000;
-        const parts = cookies.map(c => {
-            if (!c.expirationDate) return `${c.name}=session`;
-            const hours = ((c.expirationDate - now) / 3600).toFixed(1);
-            return `${c.name}=${hours}h`;
-        });
-        await diag("cookie_probe", `${tag}：${parts.join(" ")}`);
     } catch (e) {
-        await diag("cookie_probe_fail", `${tag}：${e?.message || e}`);
+        await diag("auth_probe_fail", `${tag}：${e?.message || e}`);
     }
+
+    // 保留上次由 content script 掃出的 web storage 結果（cookie 單獨查詢時不清掉）
+    const prev = await chrome.storage.local.get("authProbe");
+    result.web = prev.authProbe?.web || [];
+    await chrome.storage.local.set({ authProbe: result });
+
+    const jwtHit = result.cookies.find(c => c.jwtExpHours !== null);
+    const summary = result.cookies.length === 0
+        ? "讀不到任何 cookie（可能未登入）"
+        : jwtHit
+            ? `${jwtHit.name} JWT 剩 ${jwtHit.jwtExpHours}h（有效期 ${jwtLifetimeText(jwtHit)}）`
+            : `${result.cookies.length} 個 cookie，無 JWT 格式：` +
+              result.cookies.map(c => `${c.name}=${c.cookieExpHours === null ? "session" : c.cookieExpHours + "h"}`).join(" ");
+    await diag("auth_probe", `${tag}：${summary}`);
+    return result;
+}
+
+function jwtLifetimeText(item) {
+    return item.jwtLifetimeHours === null ? "未知" : `${item.jwtLifetimeHours}h`;
 }
 
 // ── 未登入通知 ────────────────────────────────────────
@@ -223,7 +274,7 @@ async function runClaim(targetIds, reason) {
     claimInProgress = true;
     await _setQueue(ids);
     await diag("run_start", `${reason}，佇列：${ids.join(" → ")}`);
-    await probeCookies("領取前");
+    await probeAuth("領取前");
     _runNext();
     return { started: true, reason: null, count: ids.length };
 }
@@ -294,7 +345,7 @@ async function _finishClaim(tabId, log, errorMsg, forceClose) {
         if (log.loginRequired && target) {
             // 登入過期不算完成，不寫 lastClaim；改為通知使用者處理
             await notifyLoginRequired(target);
-            await probeCookies("登入過期時");
+            await probeAuth("登入過期時");
         } else if (targetId) {
             // 唯一寫入點：實際完成領取（即使 log.error 也代表頁面有回應，當日不再重試）
             const data = await chrome.storage.local.get("lastClaim");
@@ -557,12 +608,28 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             sendResponse({ status: "ok" });
         })();
         return true;
-    } else if (msg.type === "probeCookies") {
+    } else if (msg.type === "probeAuth") {
         (async () => {
-            await probeCookies("手動查詢");
-            sendResponse({ status: "ok" });
+            const result = await probeAuth("手動查詢");
+            sendResponse({ status: "ok", result });
         })();
         return true;
+    } else if (msg.type === "getAuthProbe") {
+        chrome.storage.local.get("authProbe", (data) => sendResponse(data.authProbe || null));
+        return true;
+    } else if (msg.type === "authProbeWeb") {
+        // 來自 content script 的 web storage 掃描結果（只含 key 與時間，不含值）
+        (async () => {
+            const prev = await chrome.storage.local.get("authProbe");
+            const probe = prev.authProbe || { at: null, cookies: [], web: [] };
+            probe.web = msg.items || [];
+            probe.at = new Date().toLocaleString("zh-TW", { hour12: false });
+            await chrome.storage.local.set({ authProbe: probe });
+            if (probe.web.length > 0) {
+                const w = probe.web[0];
+                await diag("auth_probe", `頁面儲存：${w.key} JWT 剩 ${w.jwtExpHours}h`);
+            }
+        })();
     } else if (msg.type === "reschedule" || msg.type === "forceReschedule") {
         scheduleDaily();
         sendResponse({ status: "ok" });
