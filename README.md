@@ -4,7 +4,7 @@
 
 **Chrome / Edge 擴充套件 · 每天定時自動領取《逆水寒》會員中心禮包與每週簽到**
 
-![version](https://img.shields.io/badge/版本-v3.2-4caf50?style=flat-square)
+![version](https://img.shields.io/badge/版本-v3.3-4caf50?style=flat-square)
 ![license](https://img.shields.io/badge/授權-自訂非商業-ed8936?style=flat-square)
 ![chrome](https://img.shields.io/badge/Chrome-支援-4285F4?style=flat-square&logo=googlechrome&logoColor=white)
 ![edge](https://img.shields.io/badge/Edge-支援-0078D7?style=flat-square&logo=microsoftedge&logoColor=white)

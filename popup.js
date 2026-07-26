@@ -504,30 +504,52 @@ function renderAuthProbe(probe) {
         return;
     }
 
-    // 以最早到期者作為結論：那才是實際失效時間
+    // 長 key 只留尾段：nshm_offwebfast2_20260730_roleToken → …_roleToken
+    // 完整名稱放 title，滑過去看得到
+    const shortKey = (k) => (k.length <= 18 ? k : "…" + k.slice(-17));
+
     const all = [
-        ...probe.cookies.map(c => ({ label: c.name, exp: c.jwtExpHours, life: c.jwtLifetimeHours, cookieExp: c.cookieExpHours })),
-        ...probe.web.map(w => ({ label: w.key, exp: w.jwtExpHours, life: w.jwtLifetimeHours, cookieExp: null }))
+        ...probe.cookies.map(c => ({
+            isCookie: true, label: c.name,
+            exp: c.jwtExpHours, life: c.jwtLifetimeHours, cookieExp: c.cookieExpHours
+        })),
+        ...probe.web.map(w => ({
+            isCookie: false, label: w.key,
+            exp: w.jwtExpHours, life: w.jwtLifetimeHours, cookieExp: null
+        }))
     ];
     const jwts = all.filter(i => i.exp !== null && i.exp !== undefined);
 
     let headline;
     if (jwts.length === 0) {
-        headline = '<span class="auth-warn">找不到 JWT 格式的憑證</span>　登入態可能是伺服器端 session（無法從本機讀出到期時間）';
+        headline = '<span class="auth-warn">找不到可解出到期時間的憑證</span>'
+            + '<div class="auth-sub">登入態可能是伺服器端 session，或憑證不在本站網域</div>';
     } else {
+        // 以最早到期者作為結論：那才是實際會斷線的時間
         const soonest = jwts.reduce((a, b) => (a.exp <= b.exp ? a : b));
         const cls = soonest.exp < 0 ? "auth-bad" : soonest.exp < 6 ? "auth-warn" : "auth-ok";
-        headline = `登入憑證 <b>${escapeHtml(soonest.label)}</b> <span class="${cls}">剩 ${fmtHours(soonest.exp)}</span>`
-            + (soonest.life !== null ? `　·　簽發後有效期 <b>${fmtHours(soonest.life)}</b>` : "");
+        headline = `最早到期：<span class="${cls}">${fmtHours(soonest.exp)}</span>`
+            + (soonest.life !== null ? `　·　有效期 ${fmtHours(soonest.life)}` : "")
+            + `<div class="auth-sub" title="${escapeHtml(soonest.label)}">${escapeHtml(shortKey(soonest.label))}`
+            + `（${soonest.isCookie ? "Cookie" : "頁面儲存"}）</div>`;
     }
 
-    const rows = all.map(i => `
+    // 一筆時不重複列出，標題已經講完了
+    const rows = all.length <= 1 ? "" : all.map(i => `
       <div class="auth-row">
-        <span class="auth-key">${escapeHtml(i.label)}</span>
-        <span class="auth-val">token ${fmtHours(i.exp)}　/　cookie ${i.cookieExp === null ? "session" : fmtHours(i.cookieExp)}</span>
+        <span class="auth-src">${i.isCookie ? "Cookie" : "頁面"}</span>
+        <span class="auth-key" title="${escapeHtml(i.label)}">${escapeHtml(shortKey(i.label))}</span>
+        <span class="auth-val">${i.exp === null || i.exp === undefined ? "無到期資訊" : fmtHours(i.exp)}${
+            i.isCookie && i.cookieExp !== null ? `<span class="auth-dim"> / cookie ${fmtHours(i.cookieExp)}</span>` : ""
+        }</span>
       </div>`).join("");
 
-    box.innerHTML = `<div class="auth-headline">${headline}</div>${rows}
+    // 讀不到本站 cookie 是重要線索，不能只是「沒東西」而不說
+    const note = probe.cookies.length === 0
+        ? '<div class="auth-sub auth-warn-text">未讀到本站 cookie，登入憑證可能位於其他網域</div>'
+        : "";
+
+    box.innerHTML = `<div class="auth-headline">${headline}</div>${rows}${note}
       <div class="auth-time">查詢時間：${escapeHtml(probe.at || "—")}</div>`;
 }
 

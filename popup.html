@@ -467,8 +467,15 @@
       display: flex; justify-content: space-between; gap: 8px;
       font-size: 10px; font-family: monospace; color: #777; padding: 1px 0;
     }
-    .auth-key { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 45%; }
+    .auth-key { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
     .auth-val { white-space: nowrap; }
+    .auth-dim { color: #aaa; }
+    .auth-src {
+      flex: none; padding: 0 4px; border-radius: 3px;
+      background: #eef2f6; color: #678; font-size: 9px; line-height: 14px;
+    }
+    .auth-sub { font-size: 10px; color: #999; font-weight: 400; margin-top: 2px; }
+    .auth-warn-text { color: #b0700a; }
     .auth-time { font-size: 9px; color: #aaa; margin-top: 3px; }
   </style>
 </head>
