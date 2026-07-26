@@ -95,6 +95,35 @@ for (const p of new Set(iconPaths)) {
     if (!existsSync(join(ROOT, p))) fail(`manifest 引用的圖示不存在：${p}（執行 node tools/gen-icon.mjs 產生）`);
 }
 
+// ── 版本號三處必須一致 ───────────────────────────────
+// manifest 是唯一真值；package.json 與 README badge 都得跟上。
+// 這在開發中實際漏過：改了 manifest 卻忘了 README，使用者看到的版本是舊的。
+const pkg = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
+const readme = readFileSync(join(ROOT, "README.md"), "utf8");
+
+if (!pkg.version.startsWith(manifest.version + ".")) {
+    fail(`package.json 版本 ${pkg.version} 與 manifest ${manifest.version} 不一致`);
+}
+
+const badge = readme.match(/版本-v([\d.]+)-/);
+if (!badge) {
+    fail("README 找不到版本徽章（預期形如 版本-v3.4-）");
+} else if (badge[1] !== manifest.version) {
+    fail(`README 徽章版本 v${badge[1]} 與 manifest ${manifest.version} 不一致`);
+}
+
+// ── 文件的 HTML 標籤必須配對 ─────────────────────────
+// README 大量使用 <details> / <div> 排版，少一個閉合標籤在 GitHub 上
+// 會整段塌掉，而 markdown 不會報錯
+for (const doc of ["README.md", "MODULE_MAP.md"]) {
+    const text = readFileSync(join(ROOT, doc), "utf8");
+    for (const tag of ["details", "div", "table"]) {
+        const open = (text.match(new RegExp(`<${tag}[ >]`, "g")) || []).length;
+        const close = (text.match(new RegExp(`</${tag}>`, "g")) || []).length;
+        if (open !== close) fail(`${doc}：<${tag}> 標籤不配對（開 ${open} / 閉 ${close}）`);
+    }
+}
+
 // ── 結果 ─────────────────────────────────────────────
 if (errors.length > 0) {
     console.error("✗ 一致性檢查失敗：\n  " + errors.join("\n  "));
