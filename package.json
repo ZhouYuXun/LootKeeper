@@ -1,11 +1,11 @@
 {
   "name": "lootkeeper",
-  "version": "3.1.0",
+  "version": "3.2.0",
   "private": true,
   "description": "《逆水寒》官網每日禮包與簽到自動領取的 Chrome / Edge 擴充功能",
   "type": "module",
   "scripts": {
-    "check": "npm run check:syntax && node tools/check-consistency.mjs && node tools/test-jwt.mjs",
+    "check": "npm run check:syntax && node tools/check-consistency.mjs && node tools/test-jwt.mjs && node tools/test-version.mjs",
     "check:syntax": "node --check targets.js && node --check claim-core.js && node --check claim-vip.js && node --check claim-checkin.js && node --check background.js && node --check popup.js",
     "icons": "node tools/gen-icon.mjs"
   },

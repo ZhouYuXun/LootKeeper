@@ -4,7 +4,7 @@
 
 **Chrome / Edge 擴充套件 · 每天定時自動領取《逆水寒》會員中心禮包與每週簽到**
 
-![version](https://img.shields.io/badge/版本-v3.1-4caf50?style=flat-square)
+![version](https://img.shields.io/badge/版本-v3.2-4caf50?style=flat-square)
 ![license](https://img.shields.io/badge/授權-自訂非商業-ed8936?style=flat-square)
 ![chrome](https://img.shields.io/badge/Chrome-支援-4285F4?style=flat-square&logo=googlechrome&logoColor=white)
 ![edge](https://img.shields.io/badge/Edge-支援-0078D7?style=flat-square&logo=microsoftedge&logoColor=white)
@@ -58,7 +58,7 @@
 
 > 官網的登入有時效，過期後會自動登出。v3.0 起偵測到未登入時會跳**桌面通知**並在記錄頁顯示橫幅，點一下即可開啟官網重新登入，不必等到發現漏領才察覺。
 >
-> 想知道登入還能撐多久：**設定 → 診斷 → 顯示診斷 → 登入時效**，會直接顯示憑證的剩餘有效時間與簽發後的總有效期。只解出到期時間，**不讀取也不儲存憑證內容**。
+> 想知道登入還能撐多久：**設定分頁 → 登入狀態**，開啟就會顯示憑證的剩餘有效時間與簽發後的總有效期。只解出到期時間，**不讀取也不儲存憑證內容**。
 
 <br>
 
@@ -138,11 +138,12 @@
 </thead>
 <tbody>
 <tr><td align="center">領取目標</td><td align="center">全部開啟</td><td align="center">可個別停用「VIP 禮包」或「每週簽到」，並顯示各自的完成狀態</td></tr>
+<tr><td align="center">登入狀態</td><td align="center">—</td><td align="center">顯示登入憑證剩餘有效時間與簽發後總有效期，開啟面板即自動查詢</td></tr>
 <tr><td align="center">每日自動領取</td><td align="center">開啟</td><td align="center">關閉後僅保留手動領取</td></tr>
 <tr><td align="center">每日執行時間</td><td align="center">05:10</td><td align="center">修改後按「儲存」立即重新排程</td></tr>
 <tr><td align="center">領取後關閉頁面</td><td align="center">關閉</td><td align="center">完成後自動關閉領取分頁</td></tr>
 <tr><td align="center">歷史紀錄筆數</td><td align="center">6</td><td align="center">保留幾筆執行記錄（每個目標各一筆）</td></tr>
-<tr><td align="center">檢查更新</td><td align="center">—</td><td align="center">比對遠端版本，有新版顯示下載連結</td></tr>
+<tr><td align="center">檢查更新</td><td align="center">自動</td><td align="center">每 20 小時自動比對遠端版本，有新版會在工具列圖示顯示 <b>NEW</b> 標記並跳桌面通知；也可手動點按立即檢查</td></tr>
 </tbody>
 </table>
 
@@ -180,11 +181,30 @@
 <details>
 <summary><b>更新到新版</b></summary>
 
-1. 設定分頁 → **檢查更新** → 若有新版點「前往下載」
+有新版時，工具列圖示會出現橘色 **NEW** 標記並跳一次桌面通知（每個版本只通知一次），不必自己去查。
+
+1. 點通知，或到設定分頁 → **檢查更新** → 點「前往下載」
 2. 下載新 ZIP，解壓縮並**覆蓋**原資料夾
 3. 到擴充套件管理頁，點 LootKeeper 卡片的「**重新載入**」圖示
 
 > 設定與記錄存在瀏覽器儲存空間，更新不會遺失。
+
+</details>
+
+<br>
+
+<details>
+<summary><b>用 git 讓更新免手動（進階，需要安裝 git）</b></summary>
+
+擴充套件本身無法自我更新——瀏覽器不允許擴充套件改寫自己的檔案，而自架更新伺服器的做法在 Windows 上已被 Chrome 封鎖。但如果你的安裝資料夾是 git clone 來的，可以讓檔案自動保持最新：
+
+```bash
+git clone https://github.com/ZhouYuXun/LootKeeper.git
+```
+
+之後用 Windows 工作排程器每天執行一次 `git -C <資料夾> pull` 即可。**未封裝的擴充套件在瀏覽器啟動時會重新從原資料夾讀取檔案**，所以下次開瀏覽器就是新版，連「重新載入」都不用按。
+
+> 注意：更新不會即時生效，要等瀏覽器重新啟動。若當下就想套用，仍需到擴充套件管理頁按「重新載入」。
 
 </details>
 
@@ -272,7 +292,6 @@
 <tbody>
 <tr><td align="center">鬧鐘狀態 · 查詢</td><td align="center">顯示下次自動觸發時間</td></tr>
 <tr><td align="center">鬧鐘狀態 · 重設</td><td align="center">若時間設定變更後沒套用，可手動重建排程</td></tr>
-<tr><td align="center">鬧鐘狀態 · 登入時效</td><td align="center">顯示登入憑證的剩餘有效時間與簽發後總有效期（只讀到期時間，不讀憑證內容）</td></tr>
 <tr><td align="center">觸發記錄</td><td align="center">最近 150 筆事件（排程觸發、SW 喚醒、視窗狀態）</td></tr>
 <tr><td align="center">清除</td><td align="center">清空觸發記錄</td></tr>
 </tbody>
@@ -326,7 +345,7 @@
 - 🖱️ **手動觸發** — 隨時點工具列圖示立即領取，無次數限制
 - 📋 **執行記錄** — 保留最近 N 次結果，含各禮包詳細狀態
 - 🩺 **診斷面板** — 內建排程查詢、觸發紀錄與重設按鈕
-- 🔔 **版本通知** — 設定頁可手動檢查新版
+- 🔔 **版本通知** — 每 20 小時自動檢查，有新版顯示 NEW 標記與桌面通知
 - 🛡️ **逾時保護** — 頁面 35 秒未回應自動關閉並記錄錯誤
 
 </details>

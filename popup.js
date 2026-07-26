@@ -277,56 +277,53 @@ document.getElementById("maxLogInput").addEventListener("change", (e) => {
 });
 
 // ── 檢查更新 ──────────────────────────────────────────
-const REMOTE_MANIFEST = "https://raw.githubusercontent.com/ZhouYuXun/LootKeeper/main/manifest.json";
-
-function parseVer(v) {
-    return String(v).split(".").map(Number);
-}
-function isNewer(remote, local) {
-    const a = parseVer(remote), b = parseVer(local);
-    for (let i = 0; i < Math.max(a.length, b.length); i++) {
-        if ((a[i] || 0) > (b[i] || 0)) return true;
-        if ((a[i] || 0) < (b[i] || 0)) return false;
+// 版本比對與遠端抓取一律由 background 負責（它每 20 小時自動檢查一次、
+// 有新版會下 badge 與桌面通知）。popup 只負責顯示，避免兩份版本比對邏輯。
+function renderUpdate(info) {
+    const statusEl = document.getElementById("updateStatus");
+    if (!info) {
+        statusEl.textContent = "";
+        statusEl.className = "update-status";
+        return;
     }
-    return false;
+    if (info.error) {
+        statusEl.textContent = "網路錯誤，請稍後再試";
+        statusEl.className = "update-status error";
+        return;
+    }
+    if (info.hasUpdate) {
+        const link = document.createElement("a");
+        link.href = chrome.runtime.getManifest().homepage_url;
+        link.target = "_blank";
+        link.className = "update-link";
+        link.textContent = "前往下載";
+        statusEl.textContent = "";
+        statusEl.appendChild(document.createTextNode(`發現新版本 v${info.remote} · `));
+        statusEl.appendChild(link);
+        statusEl.className = "update-status has-update";
+    } else {
+        statusEl.textContent = "已是最新版本";
+        statusEl.className = "update-status up-to-date";
+    }
 }
 
-function checkUpdate() {
+document.getElementById("checkUpdateBtn").addEventListener("click", () => {
     const btn = document.getElementById("checkUpdateBtn");
     const statusEl = document.getElementById("updateStatus");
     btn.disabled = true;
     statusEl.className = "update-status";
     statusEl.textContent = "檢查中…";
 
-    fetch(REMOTE_MANIFEST)
-        .then(r => r.json())
-        .then(data => {
-            const remote = data.version || "";
-            const local = chrome.runtime.getManifest().version;
-            if (isNewer(remote, local)) {
-                const ver = document.createTextNode(`發現新版本 v${remote} · `);
-                const link = document.createElement("a");
-                link.href = "https://github.com/ZhouYuXun/LootKeeper";
-                link.target = "_blank";
-                link.className = "update-link";
-                link.textContent = "前往下載";
-                statusEl.textContent = "";
-                statusEl.appendChild(ver);
-                statusEl.appendChild(link);
-                statusEl.className = "update-status has-update";
-            } else {
-                statusEl.textContent = "已是最新版本";
-                statusEl.className = "update-status up-to-date";
-            }
-        })
-        .catch(() => {
-            statusEl.textContent = "網路錯誤，請稍後再試";
+    chrome.runtime.sendMessage({ type: "checkUpdate", force: true }, (info) => {
+        btn.disabled = false;
+        if (chrome.runtime.lastError || !info) {
+            statusEl.textContent = "檢查失敗，請稍後再試";
             statusEl.className = "update-status error";
-        })
-        .finally(() => { btn.disabled = false; });
-}
-
-document.getElementById("checkUpdateBtn").addEventListener("click", checkUpdate);
+            return;
+        }
+        renderUpdate(info);
+    });
+});
 
 // ── 診斷日誌 ──────────────────────────────────────────
 const DIAG_TYPE_STYLE = {
@@ -339,6 +336,8 @@ const DIAG_TYPE_STYLE = {
     queue_done:         { color: "#1a7a1a", icon: "🏁" },
     migrated:           { color: "#555",    icon: "🔄" },
     login_required:     { color: "#c00",    icon: "🔒" },
+    update_check:       { color: "#555",    icon: "🔎" },
+    update_check_fail:  { color: "#e67e00", icon: "🔎" },
     auth_probe:         { color: "#0a6",    icon: "🍪" },
     auth_probe_fail:    { color: "#c00",    icon: "🍪" },
     notify_fail:        { color: "#e67e00", icon: "🔕" },
@@ -552,6 +551,11 @@ document.getElementById("currentVersion").textContent =
 loadSettings();
 renderTargets();
 renderLog();
+
+// 顯示 background 上次的檢查結果（不主動連網，按「檢查更新」才強制重查）
+chrome.storage.local.get("updateInfo", (data) => {
+    if (data.updateInfo?.hasUpdate) renderUpdate(data.updateInfo);
+});
 
 // 開啟即查詢：登入時效是「一眼要看到」的資訊，不該藏在診斷面板後面
 document.getElementById("authProbe").innerHTML = '<div class="auth-empty">查詢中…</div>';

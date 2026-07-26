@@ -164,6 +164,80 @@ function jwtLifetimeText(item) {
     return item.jwtLifetimeHours === null ? "未知" : `${item.jwtLifetimeHours}h`;
 }
 
+// ── 版本更新檢查 ──────────────────────────────────────
+// 自架 CRX 自動更新在 Windows 上已被 Chrome 封死（2024 起逐步收緊），
+// 因此更新一律是「偵測到新版 → 告知使用者」，實際更新由使用者操作。
+const REMOTE_MANIFEST = "https://raw.githubusercontent.com/ZhouYuXun/LootKeeper/main/manifest.json";
+const UPDATE_CHECK_INTERVAL_MS = 20 * 60 * 60 * 1000; // 20 小時，略短於每日排程
+
+function parseVer(v) {
+    return String(v).split(".").map(n => parseInt(n, 10) || 0);
+}
+function isNewer(remote, local) {
+    const a = parseVer(remote), b = parseVer(local);
+    for (let i = 0; i < Math.max(a.length, b.length); i++) {
+        if ((a[i] || 0) > (b[i] || 0)) return true;
+        if ((a[i] || 0) < (b[i] || 0)) return false;
+    }
+    return false;
+}
+
+async function setUpdateBadge(hasUpdate) {
+    try {
+        await chrome.action.setBadgeText({ text: hasUpdate ? "NEW" : "" });
+        if (hasUpdate) {
+            await chrome.action.setBadgeBackgroundColor({ color: "#e67e00" });
+        }
+    } catch { /* action API 在極少數狀態下不可用，不影響其他功能 */ }
+}
+
+// force=true 為使用者主動點擊，忽略節流
+async function checkUpdate(force = false) {
+    const local = chrome.runtime.getManifest().version;
+    const stored = await chrome.storage.local.get(["updateInfo"]);
+    const info = stored.updateInfo || {};
+
+    if (!force && info.checkedAt && Date.now() - info.checkedAt < UPDATE_CHECK_INTERVAL_MS) {
+        return { ...info, local, cached: true };
+    }
+
+    try {
+        const res = await fetch(REMOTE_MANIFEST, { cache: "no-store" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const remoteManifest = await res.json();
+        const remote = remoteManifest.version || "";
+        const hasUpdate = isNewer(remote, local);
+
+        const next = { remote, hasUpdate, checkedAt: Date.now(), error: null };
+        await chrome.storage.local.set({ updateInfo: next });
+        await setUpdateBadge(hasUpdate);
+
+        // 同一個版本只通知一次，避免每天重複打擾
+        if (hasUpdate && info.notifiedFor !== remote) {
+            next.notifiedFor = remote;
+            await chrome.storage.local.set({ updateInfo: next });
+            try {
+                await chrome.notifications.create("lk-update", {
+                    type: "basic",
+                    iconUrl: "icon128.png",
+                    title: `LootKeeper：有新版本 v${remote}`,
+                    message: "點此前往 GitHub 下載更新。",
+                    priority: 1
+                });
+            } catch (e) {
+                await diag("notify_fail", e?.message || String(e));
+            }
+        }
+        await diag("update_check", hasUpdate ? `發現新版 v${remote}（目前 v${local}）` : `已是最新版 v${local}`);
+        return { ...next, local, cached: false };
+    } catch (e) {
+        const next = { ...info, error: e?.message || String(e), checkedAt: Date.now() };
+        await chrome.storage.local.set({ updateInfo: next });
+        await diag("update_check_fail", next.error);
+        return { ...next, local, cached: false };
+    }
+}
+
 // ── 未登入通知 ────────────────────────────────────────
 async function notifyLoginRequired(target) {
     const data = await chrome.storage.local.get("loginRequired");
@@ -518,6 +592,11 @@ async function runStartupChecks() {
     ensureAlarmsExist();
     checkMissedClaim();
     checkPendingClaim("SW 啟動");
+
+    // badge 不跨 SW 重啟，依儲存的結果重新套用
+    const { updateInfo } = await chrome.storage.local.get("updateInfo");
+    if (updateInfo?.hasUpdate) setUpdateBadge(true);
+    checkUpdate(); // 自帶 20 小時節流
 }
 runStartupChecks();
 
@@ -618,6 +697,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             sendResponse({ status: "ok", result });
         })();
         return true;
+    } else if (msg.type === "checkUpdate") {
+        (async () => sendResponse(await checkUpdate(!!msg.force)))();
+        return true;
     } else if (msg.type === "getAuthProbe") {
         chrome.storage.local.get("authProbe", (data) => sendResponse(data.authProbe || null));
         return true;
@@ -670,6 +752,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
 // 點擊「登入過期」通知即開啟該目標頁面，讓使用者直接登入
 chrome.notifications.onClicked.addListener((notificationId) => {
+    if (notificationId === "lk-update") {
+        chrome.tabs.create({ url: chrome.runtime.getManifest().homepage_url, active: true });
+        chrome.notifications.clear(notificationId, () => { chrome.runtime.lastError; });
+        return;
+    }
     const targetId = notificationId.replace(/^lk-login-/, "");
     const target = getTarget(targetId);
     if (!target) return;
