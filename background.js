@@ -1,14 +1,23 @@
-const GIFT_URL = "https://www.swordofjustice.com/h5/20260424/vip/index.html#/";
+importScripts("targets.js");
+
 const FALLBACK_CLOSE_MS = 35000;
-const DEFAULT_MAX_LOG = 3;
+const DEFAULT_MAX_LOG = 6;
 
 // ── 模組層級領取狀態（SW 重啟後重設，不可依賴持久性） ──────────────
+// 佇列本身存在 chrome.storage.session，SW 重啟後仍可續跑
 let claimInProgress = false;
 let claimFallbackTimer = null;
 let claimKeepalive = null;
 
+// 使用「本地時區」日期，不可用 toISOString()（那是 UTC）。
+// v2.x 用的是 UTC：台北時間 00:00–08:00 之間執行時，會被算成前一天，
+// 導致「昨天 09:00 手動領過 → 今天 05:10 排程被判定為今日已完成而跳過」。
+// 單一 VIP 禮包漏一天還能補領，但每日簽到漏一天就永久過期，故必須修正。
 function today() {
-    return new Date().toISOString().slice(0, 10);
+    const d = new Date();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${d.getFullYear()}-${m}-${day}`;
 }
 
 // ── 診斷日誌 ──────────────────────────────────────────
@@ -32,6 +41,41 @@ function diag(type, note = "") {
     return _diagWriteChain;
 }
 
+// ── 舊版資料遷移 ──────────────────────────────────────
+// v2.x：lastClaim 為字串、pendingClaim 為數字，皆假設只有單一領取目標
+async function migrateStorage() {
+    const data = await chrome.storage.local.get(["lastClaim", "pendingClaim"]);
+    const patch = {};
+
+    if (typeof data.lastClaim === "string") {
+        patch.lastClaim = { vip: data.lastClaim };
+    }
+    if (typeof data.pendingClaim === "number") {
+        patch.pendingClaim = { at: data.pendingClaim, queue: ["vip"] };
+    }
+
+    if (Object.keys(patch).length > 0) {
+        await chrome.storage.local.set(patch);
+        await diag("migrated", `v2 → v3 資料遷移：${Object.keys(patch).join(", ")}`);
+    }
+}
+
+// ── 目標啟用狀態 ──────────────────────────────────────
+async function getEnabledTargets() {
+    const data = await chrome.storage.local.get("targetsEnabled");
+    const enabled = data.targetsEnabled || {};
+    // 未設定過的目標預設啟用，讓新版新增的目標自動生效
+    return TARGETS.filter(t => enabled[t.id] !== false);
+}
+
+// 今日尚未完成的啟用目標
+async function getDueTargets() {
+    const enabled = await getEnabledTargets();
+    const data = await chrome.storage.local.get("lastClaim");
+    const last = data.lastClaim || {};
+    return enabled.filter(t => last[t.id] !== today());
+}
+
 // 取得當下視窗統計（normal / popup / panel / app / devtools）
 async function _snapshotWindows() {
     const wins = await chrome.windows.getAll({});
@@ -42,6 +86,60 @@ async function _snapshotWindows() {
     return { total, summary };
 }
 
+// ── 登入 cookie 到期量測 ──────────────────────────────
+// 目的：驗證「登入態撐不到一天」的假設。網站登入 cookie 為 HttpOnly，
+// 網頁 JS 讀不到，只有擴充功能的 cookies API 讀得到 expirationDate。
+// 只記錄名稱與剩餘時數，絕不記錄 cookie 值。
+async function probeCookies(tag) {
+    try {
+        const cookies = await chrome.cookies.getAll({ url: "https://www.swordofjustice.com/" });
+        if (!cookies || cookies.length === 0) {
+            await diag("cookie_probe", `${tag}：讀不到任何 cookie`);
+            return;
+        }
+        const now = Date.now() / 1000;
+        const parts = cookies.map(c => {
+            if (!c.expirationDate) return `${c.name}=session`;
+            const hours = ((c.expirationDate - now) / 3600).toFixed(1);
+            return `${c.name}=${hours}h`;
+        });
+        await diag("cookie_probe", `${tag}：${parts.join(" ")}`);
+    } catch (e) {
+        await diag("cookie_probe_fail", `${tag}：${e?.message || e}`);
+    }
+}
+
+// ── 未登入通知 ────────────────────────────────────────
+async function notifyLoginRequired(target) {
+    const data = await chrome.storage.local.get("loginRequired");
+    const flags = data.loginRequired || {};
+    flags[target.id] = true;
+    await chrome.storage.local.set({ loginRequired: flags });
+
+    try {
+        await chrome.notifications.create(`lk-login-${target.id}`, {
+            type: "basic",
+            iconUrl: "icon128.png",
+            title: "LootKeeper：登入已過期",
+            message: `「${target.name}」需要重新登入官網才能領取。`,
+            priority: 2
+        });
+    } catch (e) {
+        // 通知失敗不影響領取流程本身（例如使用者關閉了系統通知）
+        await diag("notify_fail", e?.message || String(e));
+    }
+}
+
+async function clearLoginRequired(targetId) {
+    const data = await chrome.storage.local.get("loginRequired");
+    const flags = data.loginRequired || {};
+    if (!flags[targetId]) return;
+    delete flags[targetId];
+    await chrome.storage.local.set({ loginRequired: flags });
+    chrome.notifications.clear(`lk-login-${targetId}`, () => { chrome.runtime.lastError; });
+}
+
+// ── 排程 ──────────────────────────────────────────────
 // 讀取自訂時間後排程；若 dailyEnabled 為 false 則清除排程
 // 1 秒內的重複呼叫合併為單次執行，避免 reload 時 3 個入口同時觸發
 let _scheduleDailyPromise = null;
@@ -95,35 +193,128 @@ function saveLog(entry) {
     });
 }
 
-// ── 結束領取流程（清理所有狀態） ──────────────────────
-function _finishClaim(tabId, log, errorMsg, forceClose) {
+// ── 佇列 ──────────────────────────────────────────────
+// 多目標一律序列化執行：一個目標的分頁處理完才開下一個。
+// 併發雖然較快，但會讓 keepalive、逾時保護、授權分頁驗證全部複雜化，
+// 而每日只跑一次、每次數十秒，序列化的代價可以忽略。
+async function _setQueue(ids) {
+    await chrome.storage.session.set({ lkQueue: ids });
+}
+async function _shiftQueue() {
+    const data = await chrome.storage.session.get("lkQueue");
+    const queue = data.lkQueue || [];
+    const next = queue.shift() || null;
+    await chrome.storage.session.set({ lkQueue: queue });
+    return next;
+}
+
+// 回傳是否真的啟動，讓 popup 能顯示正確狀態而不是永遠顯示「執行中」
+async function runClaim(targetIds, reason) {
+    if (claimInProgress) {
+        await diag("run_blocked", "claimInProgress=true，跳過");
+        return { started: false, reason: "busy", count: 0 };
+    }
+    const ids = (targetIds || []).filter(id => getTarget(id));
+    if (ids.length === 0) {
+        await diag("run_empty", `${reason}：無待領取目標`);
+        return { started: false, reason: "empty", count: 0 };
+    }
+
+    claimInProgress = true;
+    await _setQueue(ids);
+    await diag("run_start", `${reason}，佇列：${ids.join(" → ")}`);
+    await probeCookies("領取前");
+    _runNext();
+    return { started: true, reason: null, count: ids.length };
+}
+
+// 取出佇列下一個目標並開分頁；佇列空則收尾
+async function _runNext() {
+    const nextId = await _shiftQueue();
+    if (!nextId) {
+        claimInProgress = false;
+        await chrome.storage.session.remove(["lkActiveTarget", "lkQueue"]);
+        await diag("queue_done", "所有目標處理完畢");
+        return;
+    }
+
+    const target = getTarget(nextId);
+    await chrome.storage.session.set({ lkActiveTarget: nextId });
+
+    // 只計算 "normal" 視窗類型，排除 popup/sidebar/devtools 等不能 tabs.create 的視窗
+    const wins = await chrome.windows.getAll({ windowTypes: ["normal"] });
+    const normalCount = wins ? wins.length : 0;
+    await diag("target_start", `${target.name}（normal視窗=${normalCount}）`);
+
+    if (normalCount === 0) {
+        _createMinimizedWindow(target, "無normal視窗");
+        return;
+    }
+
+    chrome.tabs.create({ url: target.url, active: false }, (tab) => {
+        if (chrome.runtime.lastError || !tab) {
+            const errMsg = chrome.runtime.lastError?.message || "tab=null";
+            if (SIDEBAR_RESTRICT_RE.test(errMsg)) {
+                // Edge sidebar 限制：windows.create 也會被擋，直接進入待執行流程
+                _handleSidebarRestriction(target);
+                return;
+            }
+            diag("tab_fallback", `tabs.create失敗，改建立新視窗：${errMsg}`);
+            _createMinimizedWindow(target, "tabs.create失敗fallback");
+            return;
+        }
+        _setupClaimTab(tab, target);
+    });
+}
+
+// ── 結束單一目標（清理狀態後續跑佇列） ────────────────
+async function _finishClaim(tabId, log, errorMsg, forceClose) {
     if (claimFallbackTimer) { clearTimeout(claimFallbackTimer); claimFallbackTimer = null; }
     if (claimKeepalive) { clearInterval(claimKeepalive); claimKeepalive = null; }
-    claimInProgress = false;
-    chrome.storage.session.remove("lkAuthorizedTab");
+    await chrome.storage.session.remove("lkAuthorizedTab");
+
+    // 逾時等情況下 content script 沒回傳 log，改由 session 補上目標歸屬
+    const sess = await chrome.storage.session.get("lkActiveTarget");
+    const targetId = log?.target || sess.lkActiveTarget || null;
+    const target = getTarget(targetId);
 
     if (errorMsg) {
         saveLog({
             time: new Date().toLocaleString("zh-TW", { hour12: false }),
+            target: targetId,
+            targetName: target?.name || "未知目標",
             results: [],
-            error: errorMsg
+            error: errorMsg,
+            loginRequired: false
         });
-        // 失敗不寫 lastClaim，讓 checkMissedClaim 在心跳時重試
+        // 失敗不寫 lastClaim，讓 checkMissedClaim 在下次喚醒時重試
     } else if (log) {
         saveLog(log);
-        // 唯一寫入點：實際完成領取（即使 log.error 也代表頁面有回應，當日不再重試）
-        chrome.storage.local.set({ lastClaim: today() });
+
+        if (log.loginRequired && target) {
+            // 登入過期不算完成，不寫 lastClaim；改為通知使用者處理
+            await notifyLoginRequired(target);
+            await probeCookies("登入過期時");
+        } else if (targetId) {
+            // 唯一寫入點：實際完成領取（即使 log.error 也代表頁面有回應，當日不再重試）
+            const data = await chrome.storage.local.get("lastClaim");
+            const last = data.lastClaim || {};
+            last[targetId] = today();
+            await chrome.storage.local.set({ lastClaim: last });
+            await clearLoginRequired(targetId);
+        }
     }
 
-    chrome.storage.local.get("autoClose", (data) => {
-        const shouldClose = forceClose || (data.autoClose !== undefined ? data.autoClose : false);
-        if (shouldClose) {
-            diag("tab_close", `tabId=${tabId}`);
-            chrome.tabs.remove(tabId, () => { chrome.runtime.lastError; });
-        } else {
-            diag("tab_keep", `tabId=${tabId}`);
-        }
-    });
+    const data = await chrome.storage.local.get("autoClose");
+    const shouldClose = forceClose || (data.autoClose !== undefined ? data.autoClose : false);
+    if (shouldClose) {
+        await diag("tab_close", `tabId=${tabId}`);
+        chrome.tabs.remove(tabId, () => { chrome.runtime.lastError; });
+    } else {
+        await diag("tab_keep", `tabId=${tabId}`);
+    }
+
+    _runNext();
 }
 
 // Edge "standalone sidebar mode" 限制偵測（Edge 特有 bug，Microsoft 已知議題）
@@ -132,94 +323,35 @@ const SIDEBAR_RESTRICT_RE = /restricted in standalone sidebar mode/i;
 // 12 小時：短於 dailyClaim 週期，避免 pending 跨日仍嘗試恢復
 const PENDING_CLAIM_MAX_AGE_MS = 12 * 60 * 60 * 1000;
 
-function _handleSidebarRestriction(errMsg) {
-    diag("sidebar_block", `Edge sidebar 模式禁止建立視窗，待 normal 視窗開啟後自動補領`);
+// 把當前目標與剩餘佇列一起存起來，待有 normal 視窗時整批恢復
+async function _handleSidebarRestriction(target) {
+    const data = await chrome.storage.session.get("lkQueue");
+    const queue = [target.id, ...(data.lkQueue || [])];
     claimInProgress = false;
-    chrome.storage.local.set({ pendingClaim: Date.now() });
+    await chrome.storage.local.set({ pendingClaim: { at: Date.now(), queue } });
+    await diag("sidebar_block", `Edge sidebar 模式禁止建立視窗，待 normal 視窗開啟後自動補領：${queue.join(" → ")}`);
 }
 
 // 建立最小化新視窗（windowless fallback / sidebar fallback 共用）
-function _createMinimizedWindow(reason) {
-    chrome.windows.create({ url: GIFT_URL, state: "minimized" }, (win) => {
+function _createMinimizedWindow(target, reason) {
+    chrome.windows.create({ url: target.url, state: "minimized" }, (win) => {
         if (chrome.runtime.lastError || !win?.tabs?.[0]) {
             const errMsg = chrome.runtime.lastError?.message || "win=null";
             if (SIDEBAR_RESTRICT_RE.test(errMsg)) {
-                _handleSidebarRestriction(errMsg);
+                _handleSidebarRestriction(target);
                 return;
             }
             diag("tab_fail", `windows.create失敗(${reason})：${errMsg}`);
             claimInProgress = false;
             return;
         }
-        _setupClaimTab(win.tabs[0]);
+        _setupClaimTab(win.tabs[0], target);
     });
 }
 
-function runClaim() {
-    if (claimInProgress) {
-        diag("run_blocked", "claimInProgress=true，跳過");
-        return;
-    }
-    claimInProgress = true;
-
-    // 只計算 "normal" 視窗類型，排除 popup/sidebar/devtools 等不能 tabs.create 的視窗
-    chrome.windows.getAll({ windowTypes: ["normal"] }, (wins) => {
-        const normalCount = wins ? wins.length : 0;
-        diag("run_start", `normal視窗=${normalCount}`);
-
-        if (normalCount === 0) {
-            _createMinimizedWindow("無normal視窗");
-            return;
-        }
-
-        // 有 normal 視窗時在背景建立分頁
-        chrome.tabs.create({ url: GIFT_URL, active: false }, (tab) => {
-            if (chrome.runtime.lastError || !tab) {
-                const errMsg = chrome.runtime.lastError?.message || "tab=null";
-                if (SIDEBAR_RESTRICT_RE.test(errMsg)) {
-                    // Edge sidebar 限制：windows.create 也會被擋，直接進入待執行流程
-                    _handleSidebarRestriction(errMsg);
-                    return;
-                }
-                diag("tab_fallback", `tabs.create失敗，改建立新視窗：${errMsg}`);
-                _createMinimizedWindow("tabs.create失敗fallback");
-                return;
-            }
-            _setupClaimTab(tab);
-        });
-    });
-}
-
-// 待執行領取檢查：當 normal 視窗出現或 SW 喚醒時觸發
-function checkPendingClaim(triggerReason) {
-    chrome.storage.local.get("pendingClaim", (data) => {
-        if (!data.pendingClaim) return;
-        const age = Date.now() - data.pendingClaim;
-        if (age > PENDING_CLAIM_MAX_AGE_MS) {
-            chrome.storage.local.remove("pendingClaim");
-            diag("pending_expired", `pendingClaim 超過 12 小時，已清除`);
-            return;
-        }
-        // 確認當前確實有 normal 視窗
-        chrome.windows.getAll({ windowTypes: ["normal"] }, (wins) => {
-            if (!wins || wins.length === 0) return;
-            if (claimInProgress) return;
-            chrome.storage.local.remove("pendingClaim");
-            diag("sidebar_resume", `${triggerReason}，恢復領取`);
-            setTimeout(() => runClaim(), 800);
-        });
-    });
-}
-
-// 監聽新視窗事件：使用者開啟 normal 視窗時自動恢復待執行的領取
-chrome.windows.onCreated.addListener((window) => {
-    if (window.type !== "normal") return;
-    checkPendingClaim(`偵測到 normal 視窗 (id=${window.id})`);
-});
-
-function _setupClaimTab(tab) {
+function _setupClaimTab(tab, target) {
     const tabId = tab.id;
-    diag("tab_ok", `tabId=${tabId}`);
+    diag("tab_ok", `${target.name} tabId=${tabId}`);
     chrome.storage.session.set({ lkAuthorizedTab: tabId });
 
     // MV3 SW 30 秒閒置會被終止；每 20 秒呼叫一次 Chrome API 重置計時器
@@ -234,28 +366,59 @@ function _setupClaimTab(tab) {
     }, FALLBACK_CLOSE_MS);
 }
 
+// ── 待執行領取檢查：當 normal 視窗出現或 SW 喚醒時觸發 ──
+function checkPendingClaim(triggerReason) {
+    chrome.storage.local.get("pendingClaim", (data) => {
+        const pending = data.pendingClaim;
+        if (!pending) return;
+        // 舊格式（數字時間戳）在 migrateStorage 之前也可能被讀到，容錯處理
+        const at = typeof pending === "number" ? pending : pending.at;
+        const queue = typeof pending === "number" ? ["vip"] : (pending.queue || []);
+
+        if (Date.now() - at > PENDING_CLAIM_MAX_AGE_MS) {
+            chrome.storage.local.remove("pendingClaim");
+            diag("pending_expired", "pendingClaim 超過 12 小時，已清除");
+            return;
+        }
+        // 確認當前確實有 normal 視窗
+        chrome.windows.getAll({ windowTypes: ["normal"] }, (wins) => {
+            if (!wins || wins.length === 0) return;
+            if (claimInProgress) return;
+            chrome.storage.local.remove("pendingClaim");
+            diag("sidebar_resume", `${triggerReason}，恢復領取`);
+            setTimeout(() => runClaim(queue, "sidebar 恢復"), 800);
+        });
+    });
+}
+
+// 監聽新視窗事件：使用者開啟 normal 視窗時自動恢復待執行的領取
+chrome.windows.onCreated.addListener((window) => {
+    if (window.type !== "normal") return;
+    checkPendingClaim(`偵測到 normal 視窗 (id=${window.id})`);
+});
+
 // ── 漏觸發補救：檢查今日是否該領取卻未領取 ────────────
 // MV3 alarm 在 Chrome 背景模式 / 電腦睡眠 / SW 過度回收下可能不可靠
-// 任何時候 SW 被喚醒，都檢查一次當日預定時間是否已過但 lastClaim 未更新
-function checkMissedClaim() {
-    chrome.storage.local.get(["claimTime", "dailyEnabled", "lastClaim"], (data) => {
-        const enabled = data.dailyEnabled !== undefined ? data.dailyEnabled : true;
-        if (!enabled) return;
-        if (data.lastClaim === today()) return;
-        if (claimInProgress) return;
+// 任何時候 SW 被喚醒，都檢查一次當日預定時間是否已過但仍有目標未完成
+async function checkMissedClaim() {
+    const data = await chrome.storage.local.get(["claimTime", "dailyEnabled"]);
+    const enabled = data.dailyEnabled !== undefined ? data.dailyEnabled : true;
+    if (!enabled) return;
+    if (claimInProgress) return;
 
-        const { hour = 5, minute = 10 } = data.claimTime || {};
-        const now = new Date();
-        const scheduledToday = new Date();
-        scheduledToday.setHours(hour, minute, 0, 0);
+    const due = await getDueTargets();
+    if (due.length === 0) return;
 
-        if (now.getTime() >= scheduledToday.getTime()) {
-            const scheduledStr = scheduledToday.toLocaleTimeString("zh-TW", { hour12: false });
-            diag("missed_recover", `應於 ${scheduledStr} 領取但未執行，現補領`);
-            // lastClaim 由 _finishClaim 在實際完成時寫入；失敗則下次心跳再試
-            runClaim();
-        }
-    });
+    const { hour = 5, minute = 10 } = data.claimTime || {};
+    const now = new Date();
+    const scheduledToday = new Date();
+    scheduledToday.setHours(hour, minute, 0, 0);
+    if (now.getTime() < scheduledToday.getTime()) return;
+
+    const scheduledStr = scheduledToday.toLocaleTimeString("zh-TW", { hour12: false });
+    await diag("missed_recover", `應於 ${scheduledStr} 領取但未完成：${due.map(t => t.name).join("、")}`);
+    // lastClaim 由 _finishClaim 在實際完成時寫入；失敗則下次喚醒再試
+    runClaim(due.map(t => t.id), "漏觸發補救");
 }
 
 // ── 確保鬧鐘存在 ──────────────────────────────────────
@@ -293,9 +456,10 @@ function ensureAlarmsExist() {
 })();
 
 let startupChecksDone = false;
-function runStartupChecks() {
+async function runStartupChecks() {
     if (startupChecksDone) return;
     startupChecksDone = true;
+    await migrateStorage();
     ensureAlarmsExist();
     checkMissedClaim();
     checkPendingClaim("SW 啟動");
@@ -312,7 +476,7 @@ chrome.storage.session.get("lkAuthorizedTab", (data) => {
         if (chrome.runtime.lastError || !tab) {
             // 分頁已不存在，清除殘留 session
             diag("sw_cleanup", `tabId=${orphanTabId} 已不存在，清除殘留`);
-            chrome.storage.session.remove("lkAuthorizedTab");
+            chrome.storage.session.remove(["lkAuthorizedTab", "lkActiveTarget", "lkQueue"]);
             return;
         }
 
@@ -346,16 +510,60 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
                 diag("claim_done_unauth", `tabId=${senderTabId}，非授權分頁，忽略`);
                 return;
             }
-            diag("claim_done", `tabId=${senderTabId}，results=${msg.log?.results?.length ?? 0}，error=${msg.log?.error ?? "無"}`);
+            diag("claim_done", `${msg.log?.targetName || "?"}：results=${msg.log?.results?.length ?? 0}，error=${msg.log?.error ?? "無"}`);
             _finishClaim(senderTabId, msg.log, null, false);
         });
     } else if (msg.type === "diagStep") {
         // content script 傳來的步驟診斷
         diag(msg.diagType, msg.note || "");
     } else if (msg.type === "manualClaim") {
-        runClaim();
-        sendResponse({ status: "started" });
-    } else if (msg.type === "reschedule") {
+        // 手動觸發忽略 lastClaim，使用者明確要求就跑
+        (async () => {
+            const enabled = await getEnabledTargets();
+            const ids = msg.targetId ? [msg.targetId] : enabled.map(t => t.id);
+            const res = await runClaim(ids, "手動觸發");
+            sendResponse({
+                status: res.started ? "started" : "skipped",
+                reason: res.reason,
+                count: res.count
+            });
+        })();
+        return true;
+    } else if (msg.type === "getTargets") {
+        (async () => {
+            const data = await chrome.storage.local.get(["targetsEnabled", "lastClaim", "loginRequired"]);
+            const flags = data.targetsEnabled || {};
+            const last = data.lastClaim || {};
+            const login = data.loginRequired || {};
+            sendResponse({
+                targets: TARGETS.map(t => ({
+                    id: t.id,
+                    name: t.name,
+                    url: t.url,
+                    enabled: flags[t.id] !== false,
+                    lastClaim: last[t.id] || null,
+                    doneToday: last[t.id] === today(),
+                    loginRequired: !!login[t.id]
+                }))
+            });
+        })();
+        return true;
+    } else if (msg.type === "setTargetEnabled") {
+        (async () => {
+            const data = await chrome.storage.local.get("targetsEnabled");
+            const flags = data.targetsEnabled || {};
+            flags[msg.targetId] = msg.enabled;
+            await chrome.storage.local.set({ targetsEnabled: flags });
+            sendResponse({ status: "ok" });
+        })();
+        return true;
+    } else if (msg.type === "probeCookies") {
+        (async () => {
+            await probeCookies("手動查詢");
+            sendResponse({ status: "ok" });
+        })();
+        return true;
+    } else if (msg.type === "reschedule" || msg.type === "forceReschedule") {
         scheduleDaily();
         sendResponse({ status: "ok" });
     } else if (msg.type === "getAlarmStatus") {
@@ -367,9 +575,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             });
         });
         return true;
-    } else if (msg.type === "forceReschedule") {
-        scheduleDaily();
-        sendResponse({ status: "ok" });
     } else if (msg.type === "armTestAlarm") {
         // 排 90 秒後一次性 alarm，僅供診斷「無視窗背景模式」是否能喚醒 SW
         (async () => {
@@ -388,12 +593,22 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         });
         return true;
     } else if (msg.type === "contentLoaded") {
-        diag("content_loaded", `tabId=${sender.tab?.id}，url=${sender.tab?.url?.slice(0, 60)}`);
+        diag("content_loaded", `tabId=${sender.tab?.id}，target=${msg.targetId || "未知"}`);
     }
+});
+
+// 點擊「登入過期」通知即開啟該目標頁面，讓使用者直接登入
+chrome.notifications.onClicked.addListener((notificationId) => {
+    const targetId = notificationId.replace(/^lk-login-/, "");
+    const target = getTarget(targetId);
+    if (!target) return;
+    chrome.tabs.create({ url: target.url, active: true });
+    chrome.notifications.clear(notificationId, () => { chrome.runtime.lastError; });
 });
 
 chrome.runtime.onInstalled.addListener((details) => {
     diag("installed", `reason=${details.reason}`);
+    migrateStorage();
     // top-level runStartupChecks() 已涵蓋 ensureAlarmsExist；
     // 此處單獨 ensureAlarmsExist() 處理 reload 時 alarm 可能被清空的情況
     // scheduleDaily 自身有 1 秒去重鎖，多次呼叫只執行一次
@@ -416,7 +631,8 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
             await diag("alarm_skip", "dailyEnabled=false");
             return;
         }
-        runClaim();
+        const due = await getDueTargets();
+        runClaim(due.map(t => t.id), "每日排程");
     } else if (alarm.name === "testWake") {
         const drift = Math.round((Date.now() - alarm.scheduledTime) / 1000);
         const { summary } = await _snapshotWindows();

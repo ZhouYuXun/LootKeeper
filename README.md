@@ -2,9 +2,9 @@
 
 # LootKeeper
 
-**Chrome / Edge 擴充套件 · 每天定時自動領取《逆水寒》會員中心禮包**
+**Chrome / Edge 擴充套件 · 每天定時自動領取《逆水寒》會員中心禮包與每週簽到**
 
-![version](https://img.shields.io/badge/版本-v2.10-4caf50?style=flat-square)
+![version](https://img.shields.io/badge/版本-v3.0-4caf50?style=flat-square)
 ![license](https://img.shields.io/badge/授權-自訂非商業-ed8936?style=flat-square)
 ![chrome](https://img.shields.io/badge/Chrome-支援-4285F4?style=flat-square&logo=googlechrome&logoColor=white)
 ![edge](https://img.shields.io/badge/Edge-支援-0078D7?style=flat-square&logo=microsoftedge&logoColor=white)
@@ -23,6 +23,8 @@
 ### Step 1 · 下載並安裝擴充套件
 
 從 [GitHub 頁面](https://github.com/ZhouYuXun/LootKeeper) 點綠色「**Code**」→ **Download ZIP**，解壓縮到一個**不會被刪掉**的位置（例如 `Documents\LootKeeper`），然後依下方步驟載入瀏覽器。
+
+> **從 v2.x 升級**：v3.0 新增兩個權限——**通知**（登入過期時提醒你）與 **Cookie**（讀取登入的剩餘有效時間寫入診斷記錄，**只記名稱與時數，不讀內容**）。瀏覽器會要求你重新確認權限，這是正常的。原有設定與記錄會自動遷移。
 
 <br>
 
@@ -53,6 +55,8 @@
 ### Step 2 · 登入逆水寒會員中心
 
 在瀏覽器中登入**逆水寒會員中心**。未登入時擴充套件無法領取，「立即領取」與自動領取都會失敗。
+
+> 官網的登入有時效，過期後會自動登出。v3.0 起偵測到未登入時會跳**桌面通知**並在記錄頁顯示橫幅，點一下即可開啟官網重新登入，不必等到發現漏領才察覺。
 
 <br>
 
@@ -108,8 +112,8 @@
 </tr>
 </thead>
 <tbody>
-<tr><td align="center"><b>記錄</b></td><td align="center">看最近幾次的領取結果，按「立即領取」可手動觸發</td></tr>
-<tr><td align="center"><b>設定</b></td><td align="center">調整排程時間、自動領取開關、版本檢查</td></tr>
+<tr><td align="center"><b>記錄</b></td><td align="center">看最近幾次的領取結果（每筆標示所屬目標），按「立即領取」可手動觸發</td></tr>
+<tr><td align="center"><b>設定</b></td><td align="center">開關個別領取目標、調整排程時間、自動領取開關、版本檢查</td></tr>
 <tr><td align="center"><b>贊助</b></td><td align="center">支持作者</td></tr>
 </tbody>
 </table>
@@ -131,10 +135,11 @@
 </tr>
 </thead>
 <tbody>
+<tr><td align="center">領取目標</td><td align="center">全部開啟</td><td align="center">可個別停用「VIP 禮包」或「每週簽到」，並顯示各自的完成狀態</td></tr>
 <tr><td align="center">每日自動領取</td><td align="center">開啟</td><td align="center">關閉後僅保留手動領取</td></tr>
 <tr><td align="center">每日執行時間</td><td align="center">05:10</td><td align="center">修改後按「儲存」立即重新排程</td></tr>
-<tr><td align="center">領取後關閉頁面</td><td align="center">關閉</td><td align="center">完成後自動關閉禮包分頁</td></tr>
-<tr><td align="center">歷史紀錄筆數</td><td align="center">3</td><td align="center">保留幾筆執行記錄</td></tr>
+<tr><td align="center">領取後關閉頁面</td><td align="center">關閉</td><td align="center">完成後自動關閉領取分頁</td></tr>
+<tr><td align="center">歷史紀錄筆數</td><td align="center">6</td><td align="center">保留幾筆執行記錄（每個目標各一筆）</td></tr>
 <tr><td align="center">檢查更新</td><td align="center">—</td><td align="center">比對遠端版本，有新版顯示下載連結</td></tr>
 </tbody>
 </table>
@@ -157,7 +162,7 @@
 <tbody>
 <tr><td align="center">🟢 綠色</td><td align="center">全部成功</td></tr>
 <tr><td align="center">🟠 橘色</td><td align="center">部分成功</td></tr>
-<tr><td align="center">🔴 紅色</td><td align="center">執行失敗</td></tr>
+<tr><td align="center">🔴 紅色</td><td align="center">執行失敗，或登入已過期（標示「需登入」）</td></tr>
 <tr><td align="center">⬜ 無色</td><td align="center">本次沒有可領取的項目（已領過或未解鎖）</td></tr>
 </tbody>
 </table>

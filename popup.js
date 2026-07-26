@@ -20,8 +20,26 @@ function getBadge(status) {
     }
 }
 
+// ── 登入過期橫幅 ──────────────────────────────────────
+// 登入態無法由擴充功能自行續期，只能明確告知使用者去登入
+function renderLoginBanner() {
+    chrome.runtime.sendMessage({ type: "getTargets" }, (res) => {
+        const banner = document.getElementById("loginBanner");
+        if (chrome.runtime.lastError || !res) { banner.style.display = "none"; return; }
+
+        const need = res.targets.filter(t => t.loginRequired);
+        if (need.length === 0) { banner.style.display = "none"; return; }
+
+        banner.style.display = "";
+        banner.innerHTML = `<strong>⚠ 登入已過期</strong>　${need.map(t => t.name).join("、")} 無法領取。
+          點此開啟官網重新登入。`;
+        banner.onclick = () => chrome.tabs.create({ url: need[0].url });
+    });
+}
+
 // ── 渲染記錄列表 ──────────────────────────────────────
 function renderLog() {
+    renderLoginBanner();
     chrome.storage.local.get("claimLog", (data) => {
         const lastRunEl = document.getElementById("lastRun");
         const latest = data.claimLog?.[0];
@@ -45,7 +63,9 @@ function renderLog() {
             const total = entry.results?.length ?? 0;
 
             let entryClass = "", summaryClass = "", summaryText = "";
-            if (entry.error) {
+            if (entry.loginRequired) {
+                entryClass = "has-error"; summaryClass = "summary-error"; summaryText = "需登入";
+            } else if (entry.error) {
                 entryClass = "has-error"; summaryClass = "summary-error"; summaryText = "失敗";
             } else if (successCount === total && total > 0) {
                 entryClass = "has-success"; summaryClass = "summary-success"; summaryText = `${successCount} / ${total} 成功`;
@@ -61,8 +81,12 @@ function renderLog() {
             const head = document.createElement("div");
             head.className = "entry-head";
             head.title = "點擊重新整理";
+            // v2.x 的舊記錄沒有 target 欄位，略過標籤即可
+            const targetTag = entry.targetName
+                ? `<span class="entry-target">${escapeHtml(entry.targetName)}</span>`
+                : "";
             head.innerHTML = `
-              <span class="entry-time">${entry.time}</span>
+              <span class="entry-time">${targetTag}${entry.time}</span>
               <span class="entry-summary ${summaryClass}">${summaryText}</span>
             `;
             head.addEventListener("click", renderLog);
@@ -109,14 +133,29 @@ document.getElementById("claimBtn").addEventListener("click", () => {
     status.textContent = "確認中…";
 
     chrome.runtime.sendMessage({ type: "manualClaim" }, (res) => {
-        if (res.status === "started") {
+        if (chrome.runtime.lastError || !res) {
+            btn.disabled = false;
+            status.className = "";
+            status.textContent = "";
+            return;
+        }
+        if (res.status !== "started") {
+            btn.disabled = false;
+            status.className = "";
+            status.textContent = res.reason === "busy" ? "已在執行中" : "無啟用的目標";
+            setTimeout(() => { status.textContent = ""; }, 2500);
+            return;
+        }
+        {
             status.className = "success";
-            status.textContent = "執行中…";
+            status.textContent = `執行中…（${res.count} 項）`;
+            // 多目標序列化執行，等待時間依目標數放大
             setTimeout(() => {
                 btn.disabled = false;
                 status.textContent = "";
                 renderLog();
-            }, 3000);
+                renderTargets();
+            }, 3000 + res.count * 3000);
         }
     });
 });
@@ -124,6 +163,60 @@ document.getElementById("claimBtn").addEventListener("click", () => {
 // ── 記錄列表滾動 ──────────────────────────────────────
 function syncLogScroll(max) {
     document.getElementById("log").classList.toggle("scrollable", max > 5);
+}
+
+// ── 設定：領取目標清單 ────────────────────────────────
+// 清單由 background 依 targets.js 動態產生，新增目標不必改這裡
+function renderTargets() {
+    chrome.runtime.sendMessage({ type: "getTargets" }, (res) => {
+        const box = document.getElementById("targetList");
+        if (chrome.runtime.lastError || !res) {
+            box.innerHTML = '<div class="empty">讀取失敗</div>';
+            return;
+        }
+        box.innerHTML = "";
+        res.targets.forEach(t => {
+            let stateCls = "pending", stateText = "今日尚未領取";
+            if (t.loginRequired) {
+                stateCls = "login"; stateText = "需重新登入";
+            } else if (t.doneToday) {
+                stateCls = "done"; stateText = "今日已完成";
+            } else if (!t.enabled) {
+                stateCls = "pending"; stateText = "已停用";
+            }
+
+            const row = document.createElement("div");
+            row.className = "target-row";
+
+            const name = document.createElement("span");
+            name.className = "target-name";
+            name.innerHTML = `${escapeHtml(t.name)}<small>${t.lastClaim ? "上次：" + escapeHtml(t.lastClaim) : "尚無記錄"}</small>`;
+
+            const right = document.createElement("div");
+            right.className = "target-right";
+
+            const state = document.createElement("span");
+            state.className = `target-state ${stateCls}`;
+            state.textContent = stateText;
+
+            const sel = document.createElement("select");
+            sel.className = "setting-select";
+            sel.innerHTML = '<option value="on">開啟</option><option value="off">關閉</option>';
+            sel.value = t.enabled ? "on" : "off";
+            sel.addEventListener("change", (e) => {
+                chrome.runtime.sendMessage(
+                    { type: "setTargetEnabled", targetId: t.id, enabled: e.target.value === "on" },
+                    () => renderTargets()
+                );
+            });
+
+            right.appendChild(state);
+            right.appendChild(sel);
+            row.appendChild(name);
+            row.appendChild(right);
+            box.appendChild(row);
+        });
+    });
 }
 
 // ── 設定：載入 ────────────────────────────────────────
@@ -138,7 +231,8 @@ function loadSettings() {
         const dailyEnabled = data.dailyEnabled !== undefined ? data.dailyEnabled : true;
         document.getElementById("dailyToggle").value = dailyEnabled ? "on" : "off";
         syncTimeRowVisibility(dailyEnabled);
-        const maxLog = data.maxLogEntries !== undefined ? data.maxLogEntries : 3;
+        // 預設 6：兩個目標各產生一筆記錄，3 筆只夠看一天半
+        const maxLog = data.maxLogEntries !== undefined ? data.maxLogEntries : 6;
         document.getElementById("maxLogInput").value = String(maxLog);
         syncLogScroll(maxLog);
     });
@@ -177,7 +271,7 @@ document.getElementById("dailyToggle").addEventListener("change", (e) => {
 
 // ── 設定：歷史紀錄筆數 ────────────────────────────────
 document.getElementById("maxLogInput").addEventListener("change", (e) => {
-    const val = parseInt(e.target.value) || 3;
+    const val = parseInt(e.target.value) || 6;
     syncLogScroll(val);
     chrome.storage.local.set({ maxLogEntries: val });
 });
@@ -240,6 +334,21 @@ const DIAG_TYPE_STYLE = {
     alarm_skip:         { color: "#888",    icon: "⏭" },
     run_start:          { color: "#1a7a1a", icon: "▶" },
     run_blocked:        { color: "#e67e00", icon: "⛔" },
+    run_empty:          { color: "#888",    icon: "∅" },
+    target_start:       { color: "#1a7a1a", icon: "🎯" },
+    queue_done:         { color: "#1a7a1a", icon: "🏁" },
+    migrated:           { color: "#555",    icon: "🔄" },
+    login_required:     { color: "#c00",    icon: "🔒" },
+    cookie_probe:       { color: "#0a6",    icon: "🍪" },
+    cookie_probe_fail:  { color: "#c00",    icon: "🍪" },
+    notify_fail:        { color: "#e67e00", icon: "🔕" },
+    page_timeout:       { color: "#c00",    icon: "⏳" },
+    handler_missing:    { color: "#c00",    icon: "❓" },
+    handler_error:      { color: "#c00",    icon: "💥" },
+    checkin_week:       { color: "#555",    icon: "📆" },
+    checkin_click:      { color: "#555",    icon: "👆" },
+    checkin_btn_fail:   { color: "#c00",    icon: "🔍" },
+    checkin_unconfirmed:{ color: "#e67e00", icon: "⚠" },
     tab_ok:             { color: "#1a7a1a", icon: "🌐" },
     tab_fail:           { color: "#c00",    icon: "❌" },
     tab_fallback:       { color: "#e67e00", icon: "↩" },
@@ -376,8 +485,27 @@ document.getElementById("forceRescheduleBtn").addEventListener("click", () => {
     });
 });
 
+// 讀取登入 cookie 剩餘時效，寫入診斷記錄
+// 用於驗證「登入態撐不到一天」的假設，只記錄名稱與剩餘時數
+document.getElementById("probeCookieBtn").addEventListener("click", () => {
+    const el = document.getElementById("alarmStatusText");
+    el.style.color = "#888";
+    el.textContent = "讀取中…";
+    chrome.runtime.sendMessage({ type: "probeCookies" }, () => {
+        if (chrome.runtime.lastError) {
+            el.style.color = "#c00";
+            el.textContent = "讀取失敗：" + chrome.runtime.lastError.message;
+            return;
+        }
+        el.style.color = "#1a7a1a";
+        el.textContent = "已寫入診斷記錄，見下方 cookie_probe";
+        renderDiag();
+    });
+});
+
 // ── 初始化 ────────────────────────────────────────────
 document.getElementById("currentVersion").textContent =
     "v" + chrome.runtime.getManifest().version;
 loadSettings();
+renderTargets();
 renderLog();

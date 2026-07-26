@@ -426,6 +426,36 @@
     .footer strong { color: #999; }
     .footer a { color: #bbb; text-decoration: none; }
     .footer a:hover { color: #888; text-decoration: underline; }
+
+    /* 登入過期橫幅 */
+    .login-banner {
+      margin: 6px 8px 0; padding: 7px 9px; border-radius: 5px;
+      background: #fff4e5; border: 1px solid #ffd8a8; color: #a04a00;
+      font-size: 11px; line-height: 1.5; cursor: pointer;
+    }
+    .login-banner:hover { background: #ffecd1; }
+    .login-banner strong { color: #7a3800; }
+
+    /* 目標歸屬標籤 */
+    .entry-target {
+      display: inline-block; margin-right: 5px; padding: 1px 5px;
+      border-radius: 3px; background: #eef2f6; color: #567;
+      font-size: 10px; vertical-align: middle;
+    }
+
+    /* 領取目標設定列 */
+    .target-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 6px 0; border-bottom: 1px dashed #eee;
+    }
+    .target-row:last-child { border-bottom: none; }
+    .target-name { font-size: 12px; color: #333; }
+    .target-name small { display: block; font-size: 10px; color: #999; margin-top: 1px; }
+    .target-right { display: flex; align-items: center; gap: 6px; }
+    .target-state { font-size: 10px; }
+    .target-state.done { color: #1a7a1a; }
+    .target-state.pending { color: #999; }
+    .target-state.login { color: #c00; }
   </style>
 </head>
 <body>
@@ -447,6 +477,7 @@
 
   <!-- 記錄 tab -->
   <div id="tab-log" class="tab-content active">
+    <div class="login-banner" id="loginBanner" style="display:none"></div>
     <div class="log-header">
       <div class="last-run" id="lastRun">最後執行：<span>尚無記錄</span></div>
       <button id="clearLogBtn" title="清空記錄">🗑</button>
@@ -456,6 +487,12 @@
 
   <!-- 設定 tab -->
   <div id="tab-settings" class="tab-content">
+
+    <!-- 領取目標 -->
+    <div class="setting-group">
+      <div class="setting-section-label">領取目標</div>
+      <div id="targetList"></div>
+    </div>
 
     <!-- 排程 -->
     <div class="setting-group">
@@ -505,8 +542,8 @@
           <small>最多保留幾筆執行記錄</small>
         </span>
         <select id="maxLogInput" class="setting-select">
-          <option value="3" selected>3 筆</option>
-          <option value="5">5 筆</option>
+          <option value="3">3 筆</option>
+          <option value="6" selected>6 筆</option>
           <option value="10">10 筆</option>
           <option value="20">20 筆</option>
           <option value="30">30 筆</option>
@@ -548,6 +585,7 @@
               <button id="queryAlarmBtn" class="btn btn-gray" style="font-size:10px;padding:2px 7px">查詢</button>
               <button id="forceRescheduleBtn" class="btn btn-gray" style="font-size:10px;padding:2px 7px">重設</button>
               <button id="testWakeBtn" class="btn btn-gray" style="font-size:10px;padding:2px 7px" title="90 秒後排一次性 alarm，用於測試背景喚醒">測試</button>
+              <button id="probeCookieBtn" class="btn btn-gray" style="font-size:10px;padding:2px 7px" title="讀取官網登入 cookie 的剩餘有效時間，寫入下方診斷記錄（只記名稱與時數，不記內容）">登入</button>
             </div>
           </div>
           <div id="alarmStatusText" style="font-size:10px;color:#888;margin-top:3px;font-family:monospace;word-break:break-all"></div>
