@@ -11,10 +11,12 @@ import { dirname, join } from "node:path";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
-const BG = [27, 42, 56];      // 深藍灰
+const BG = [22, 35, 48];      // 深藍灰（底部）
+const BG_TOP = [38, 58, 76];  // 深藍灰（頂部，做出淡漸層）
 const GOLD = [232, 182, 76];  // 金
-const GOLD_DARK = [176, 130, 44];
-const LOCK = [60, 44, 18];
+const GOLD_LIT = [255, 226, 150]; // 蓋面打亮
+const GOLD_DARK = [168, 122, 40];
+const LOCK = [52, 38, 14];
 
 function crc32(buf) {
     let c, crc = 0xffffffff;
@@ -35,14 +37,29 @@ function chunk(type, data) {
     return Buffer.concat([len, body, crc]);
 }
 
+// 每個像素取 SS×SS 個子樣本再平均 = 反鋸齒。
+// 沒有這一步，所有斜邊與圓角都會是階梯狀，在 16px 尤其明顯。
+const SS = 4;
+
 function encodePng(size, pixelAt) {
     const raw = Buffer.alloc(size * (size * 4 + 1));
     let p = 0;
     for (let y = 0; y < size; y++) {
         raw[p++] = 0; // filter: none
         for (let x = 0; x < size; x++) {
-            const [r, g, b, a] = pixelAt(x, y, size);
-            raw[p++] = r; raw[p++] = g; raw[p++] = b; raw[p++] = a;
+            let r = 0, g = 0, b = 0, a = 0;
+            for (let sy = 0; sy < SS; sy++) {
+                for (let sx = 0; sx < SS; sx++) {
+                    const [sr, sg, sb, sa] = pixelAt(x + (sx + 0.5) / SS, y + (sy + 0.5) / SS, size);
+                    // 以 alpha 加權累加，避免透明像素把顏色拉向黑色
+                    r += sr * sa; g += sg * sa; b += sb * sa; a += sa;
+                }
+            }
+            const n = SS * SS;
+            raw[p++] = a ? Math.round(r / a) : 0;
+            raw[p++] = a ? Math.round(g / a) : 0;
+            raw[p++] = a ? Math.round(b / a) : 0;
+            raw[p++] = Math.round(a / n);
         }
     }
     const ihdr = Buffer.alloc(13);
@@ -58,33 +75,54 @@ function encodePng(size, pixelAt) {
     ]);
 }
 
-// 以 0..1 正規化座標作畫，讓三種尺寸共用同一份設計
+// 以 0..1 正規化座標作畫，讓三種尺寸共用同一份設計。
+// x/y 帶小數（超取樣子樣本），所有邊界都用連續函式判斷，交給取樣做平滑。
 function design(x, y, size) {
-    const u = (x + 0.5) / size, v = (y + 0.5) / size;
+    const u = x / size, v = y / size;
 
-    // 圓角底：超出圓角半徑的角落切成透明
-    const dx = Math.abs(u - 0.5), dy = Math.abs(v - 0.5);
-    const corner = Math.max(dx - 0.34, 0) ** 2 + Math.max(dy - 0.34, 0) ** 2;
-    if (dx > 0.5 || dy > 0.5 || corner > 0.1 ** 2) return [0, 0, 0, 0];
+    // 圓角矩形（signed distance）：半徑 0.16，四角平滑
+    const R = 0.16, HALF = 0.5 - 0.02;
+    const qx = Math.max(Math.abs(u - 0.5) - (HALF - R), 0);
+    const qy = Math.max(Math.abs(v - 0.5) - (HALF - R), 0);
+    if (Math.hypot(qx, qy) > R) return [0, 0, 0, 0];
 
-    const inChest = u > 0.2 && u < 0.8 && v > 0.3 && v < 0.74;
-    if (!inChest) return [...BG, 255];
+    // 底色由上而下微微加深，避免整片死板的單色
+    const bg = BG.map((c, i) => Math.round(c + (BG_TOP[i] - c) * (1 - v)));
 
-    // 箱蓋（上緣圓弧）
-    const lidBottom = 0.46;
-    if (v < lidBottom) {
-        const t = (v - 0.3) / (lidBottom - 0.3);
-        const halfWidth = 0.3 * Math.sqrt(Math.max(0, 1 - (1 - t) ** 2));
-        if (Math.abs(u - 0.5) > halfWidth) return [...BG, 255];
-        return [...GOLD, 255];
+    // 箱身：圓角矩形
+    const bodyTop = 0.46, bodyBottom = 0.74, bodyHalf = 0.28;
+    const inBody =
+        Math.abs(u - 0.5) < bodyHalf && v > bodyTop && v < bodyBottom &&
+        Math.hypot(
+            Math.max(Math.abs(u - 0.5) - (bodyHalf - 0.04), 0),
+            Math.max(Math.abs(v - (bodyTop + bodyBottom) / 2) - ((bodyBottom - bodyTop) / 2 - 0.04), 0)
+        ) <= 0.04;
+
+    // 箱蓋：半橢圓，底邊與箱身上緣相接
+    const lidTop = 0.28;
+    const ry = bodyTop - lidTop;
+    const inLid =
+        v <= bodyTop && v >= lidTop &&
+        ((u - 0.5) / bodyHalf) ** 2 + ((v - bodyTop) / ry) ** 2 <= 1;
+
+    if (!inBody && !inLid) return [...bg, 255];
+
+    // 蓋與身交界的深色扣帶
+    if (v > bodyTop - 0.035 && v < bodyTop + 0.045) return [...GOLD_DARK, 255];
+
+    // 鎖孔：圓頭 + 下方梯形，置中於扣帶下方
+    const kx = u - 0.5, ky = v - 0.565;
+    const inKeyhole =
+        Math.hypot(kx, ky) < 0.038 ||
+        (Math.abs(kx) < 0.018 + (v - 0.565) * 0.12 && v > 0.565 && v < 0.655);
+    if (inKeyhole) return [...LOCK, 255];
+
+    // 蓋面上緣打亮，做出金屬弧度
+    if (inLid) {
+        const shine = Math.max(0, 1 - ((v - lidTop) / ry) * 1.6) * 0.35;
+        return [...GOLD.map((c, i) => Math.round(c + (GOLD_LIT[i] - c) * shine)), 255];
     }
-
-    // 鎖扣橫帶
-    if (v < 0.53) return [...GOLD_DARK, 255];
-
-    // 箱身 + 中央鎖孔
-    const lock = Math.abs(u - 0.5) < 0.055 && v > 0.55 && v < 0.66;
-    return lock ? [...LOCK, 255] : [...GOLD, 255];
+    return [...GOLD, 255];
 }
 
 for (const size of [16, 48, 128]) {

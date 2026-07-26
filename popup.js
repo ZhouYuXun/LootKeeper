@@ -427,12 +427,7 @@ document.getElementById("diagToggleBtn").addEventListener("click", () => {
     const hidden = panel.style.display === "none";
     panel.style.display = hidden ? "" : "none";
     btn.textContent = hidden ? "隱藏診斷" : "顯示診斷";
-    if (hidden) {
-        renderDiag();
-        chrome.runtime.sendMessage({ type: "getAuthProbe" }, (probe) => {
-            if (!chrome.runtime.lastError) renderAuthProbe(probe);
-        });
-    }
+    if (hidden) renderDiag();
 });
 
 document.getElementById("clearDiagBtn").addEventListener("click", () => {
@@ -506,7 +501,7 @@ function fmtHours(h) {
 function renderAuthProbe(probe) {
     const box = document.getElementById("authProbe");
     if (!probe || (probe.cookies.length === 0 && probe.web.length === 0)) {
-        box.innerHTML = '<div class="auth-empty">尚無資料，請按「登入時效」查詢（需先登入官網）</div>';
+        box.innerHTML = '<div class="auth-empty">讀不到登入憑證，可能尚未登入官網</div>';
         return;
     }
 
@@ -557,3 +552,14 @@ document.getElementById("currentVersion").textContent =
 loadSettings();
 renderTargets();
 renderLog();
+
+// 開啟即查詢：登入時效是「一眼要看到」的資訊，不該藏在診斷面板後面
+document.getElementById("authProbe").innerHTML = '<div class="auth-empty">查詢中…</div>';
+chrome.runtime.sendMessage({ type: "probeAuth", quiet: true }, (res) => {
+    if (chrome.runtime.lastError || !res) {
+        document.getElementById("authProbe").innerHTML =
+            '<div class="auth-empty">查詢失敗，請按「重新查詢」</div>';
+        return;
+    }
+    renderAuthProbe(res.result);
+});

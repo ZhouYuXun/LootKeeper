@@ -508,6 +508,15 @@
       <div id="targetList"></div>
     </div>
 
+    <!-- 登入狀態 -->
+    <div class="setting-group">
+      <div class="setting-section-label">
+        登入狀態
+        <button id="probeCookieBtn" class="btn btn-gray" style="float:right;font-size:10px;padding:2px 7px;font-weight:400" title="重新讀取登入憑證的剩餘有效時間（只解出到期時間，不讀取也不儲存憑證內容）">重新查詢</button>
+      </div>
+      <div id="authProbe"></div>
+    </div>
+
     <!-- 排程 -->
     <div class="setting-group">
       <div class="setting-section-label">排程</div>
@@ -599,14 +608,9 @@
               <button id="queryAlarmBtn" class="btn btn-gray" style="font-size:10px;padding:2px 7px">查詢</button>
               <button id="forceRescheduleBtn" class="btn btn-gray" style="font-size:10px;padding:2px 7px">重設</button>
               <button id="testWakeBtn" class="btn btn-gray" style="font-size:10px;padding:2px 7px" title="90 秒後排一次性 alarm，用於測試背景喚醒">測試</button>
-              <button id="probeCookieBtn" class="btn btn-gray" style="font-size:10px;padding:2px 7px" title="讀取登入憑證的剩餘有效時間（只解出到期時間，不讀取也不儲存憑證內容）">登入時效</button>
             </div>
           </div>
           <div id="alarmStatusText" style="font-size:10px;color:#888;margin-top:3px;font-family:monospace;word-break:break-all"></div>
-        </div>
-        <div style="padding:5px 8px 6px;background:#fafafa;border-bottom:1px solid #eee">
-          <div style="font-size:11px;color:#888;margin-bottom:3px">登入時效</div>
-          <div id="authProbe"></div>
         </div>
         <div id="diagContainer"></div>
       </div>

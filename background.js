@@ -117,7 +117,9 @@ function decodeJwtTimes(value) {
 
 const hoursFrom = (sec) => Number(((sec - Date.now() / 1000) / 3600).toFixed(1));
 
-async function probeAuth(tag) {
+// quiet=true 時不寫診斷記錄：popup 每次開啟都會自動查詢一次，
+// 若每次都記一筆會把 150 筆的診斷日誌洗光
+async function probeAuth(tag, quiet = false) {
     const result = {
         at: new Date().toLocaleString("zh-TW", { hour12: false }),
         cookies: [],
@@ -144,6 +146,8 @@ async function probeAuth(tag) {
     const prev = await chrome.storage.local.get("authProbe");
     result.web = prev.authProbe?.web || [];
     await chrome.storage.local.set({ authProbe: result });
+
+    if (quiet) return result;
 
     const jwtHit = result.cookies.find(c => c.jwtExpHours !== null);
     const summary = result.cookies.length === 0
@@ -610,7 +614,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         return true;
     } else if (msg.type === "probeAuth") {
         (async () => {
-            const result = await probeAuth("手動查詢");
+            const result = await probeAuth(msg.quiet ? "自動查詢" : "手動查詢", !!msg.quiet);
             sendResponse({ status: "ok", result });
         })();
         return true;
