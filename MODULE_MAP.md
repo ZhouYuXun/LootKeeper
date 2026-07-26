@@ -47,6 +47,7 @@ background.js、popup.js **不需要任何改動**：排程、佇列、記錄、
 | `pendingClaim` | `{ at: number, queue: string[] }` | Edge sidebar 限制下的待執行佇列。v2.x 為時間戳數字 |
 | `claimLog` | `[{ time, target, targetName, results, error, loginRequired }]` | 每個目標一筆 |
 | `diagLog` | `[{ t, type, note }]` | 上限 150 筆 |
+| （可選權限） | `optional_host_permissions: 163.com / easebar.com` | 非 storage。安裝時不索取，由 popup 在使用者點擊時申請。清單只在 background 的 `LOGIN_ORIGINS`，popup 以 `getLoginOrigins` 取回 |
 | `updateInfo` | `{ remote, hasUpdate, checkedAt, notifiedFor, error }` | 版本檢查結果。比對邏輯只在 background，popup 純顯示 |
 | `authProbe` | `{ at, cookies: [{ name, domain, cookieExpHours, jwtExpHours, jwtLifetimeHours }], web: [{ key, jwtExpHours, jwtLifetimeHours }] }` | 登入時效量測結果。**只存時間，絕不存憑證值** |
 

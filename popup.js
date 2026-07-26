@@ -510,7 +510,7 @@ function renderAuthProbe(probe) {
 
     const all = [
         ...probe.cookies.map(c => ({
-            isCookie: true, label: c.name,
+            isCookie: true, label: c.name, domain: c.domain,
             exp: c.jwtExpHours, life: c.jwtLifetimeHours, cookieExp: c.cookieExpHours
         })),
         ...probe.web.map(w => ({
@@ -538,7 +538,9 @@ function renderAuthProbe(probe) {
     const rows = all.length <= 1 ? "" : all.map(i => `
       <div class="auth-row">
         <span class="auth-src">${i.isCookie ? "Cookie" : "頁面"}</span>
-        <span class="auth-key" title="${escapeHtml(i.label)}">${escapeHtml(shortKey(i.label))}</span>
+        <span class="auth-key" title="${escapeHtml(i.isCookie ? i.domain + " " + i.label : i.label)}">${
+            escapeHtml(i.isCookie && i.domain ? i.domain.replace(/^\./, "") + " " : "")
+        }${escapeHtml(shortKey(i.label))}</span>
         <span class="auth-val">${i.exp === null || i.exp === undefined ? "無到期資訊" : fmtHours(i.exp)}${
             i.isCookie && i.cookieExp !== null ? `<span class="auth-dim"> / cookie ${fmtHours(i.cookieExp)}</span>` : ""
         }</span>
@@ -546,12 +548,46 @@ function renderAuthProbe(probe) {
 
     // 讀不到本站 cookie 是重要線索，不能只是「沒東西」而不說
     const note = probe.cookies.length === 0
-        ? '<div class="auth-sub auth-warn-text">未讀到本站 cookie，登入憑證可能位於其他網域</div>'
+        ? '<div class="auth-sub auth-warn-text">未讀到本站 cookie，登入憑證位於網易通行證網域</div>'
         : "";
+
+    // 尚未授權登入網域時，把申請按鈕顯示出來
+    document.getElementById("grantLoginDomainBtn").style.display = probe.extended ? "none" : "";
 
     box.innerHTML = `<div class="auth-headline">${headline}</div>${rows}${note}
       <div class="auth-time">查詢時間：${escapeHtml(probe.at || "—")}</div>`;
 }
+
+// 網域清單由 background 統一持有，popup 開啟時取回快取，
+// 待使用者點擊時才能同步取用（權限申請不能等非同步回呼）
+let loginOrigins = null;
+chrome.runtime.sendMessage({ type: "getLoginOrigins" }, (res) => {
+    if (!chrome.runtime.lastError && res?.origins) loginOrigins = res.origins;
+});
+
+// 可選權限必須在使用者手勢中申請，因此只能由 popup 的點擊發起
+document.getElementById("grantLoginDomainBtn").addEventListener("click", () => {
+    const box = document.getElementById("authProbe");
+    if (!loginOrigins) {
+        box.innerHTML = '<div class="auth-empty">尚未取得網域清單，請稍後再試</div>';
+        return;
+    }
+    // 必須在此同步呼叫：包進非同步回呼會失去使用者手勢脈絡，瀏覽器會拒絕申請
+    chrome.permissions.request({ origins: loginOrigins }, (granted) => {
+        if (chrome.runtime.lastError || !granted) {
+            box.innerHTML = '<div class="auth-empty">未授權，維持只讀取本站資料</div>';
+            return;
+        }
+        box.innerHTML = '<div class="auth-empty">查詢中…</div>';
+        chrome.runtime.sendMessage({ type: "probeAuth" }, (r) => {
+            if (chrome.runtime.lastError || !r) {
+                box.innerHTML = '<div class="auth-empty">查詢失敗，請按「重新查詢」</div>';
+                return;
+            }
+            renderAuthProbe(r.result);
+        });
+    });
+});
 
 document.getElementById("probeCookieBtn").addEventListener("click", () => {
     const box = document.getElementById("authProbe");

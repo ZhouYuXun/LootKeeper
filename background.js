@@ -117,6 +117,18 @@ function decodeJwtTimes(value) {
 
 const hoursFrom = (sec) => Number(((sec - Date.now() / 1000) / 3600).toFixed(1));
 
+// 網易通行證登入網域，列為可選權限：安裝時不索取，
+// 使用者在設定頁按下按鈕才申請，隨時可在瀏覽器收回
+const LOGIN_ORIGINS = ["https://*.163.com/*", "https://*.easebar.com/*"];
+
+async function hasLoginDomainPermission() {
+    try {
+        return await chrome.permissions.contains({ origins: LOGIN_ORIGINS });
+    } catch {
+        return false;
+    }
+}
+
 // quiet=true 時不寫診斷記錄：popup 每次開啟都會自動查詢一次，
 // 若每次都記一筆會把 150 筆的診斷日誌洗光
 async function probeAuth(tag, quiet = false) {
@@ -126,20 +138,33 @@ async function probeAuth(tag, quiet = false) {
         web: []
     };
 
-    try {
-        const cookies = await chrome.cookies.getAll({ url: "https://www.swordofjustice.com/" });
-        for (const c of cookies || []) {
-            const jwt = decodeJwtTimes(c.value);
-            result.cookies.push({
-                name: c.name,
-                domain: c.domain,
-                cookieExpHours: c.expirationDate ? hoursFrom(c.expirationDate) : null,
-                jwtExpHours: jwt ? hoursFrom(jwt.exp) : null,
-                jwtLifetimeHours: jwt?.iat ? Number(((jwt.exp - jwt.iat) / 3600).toFixed(1)) : null
-            });
+    result.extended = await hasLoginDomainPermission();
+
+    // 官網網域讀不到登入 cookie（登入態在網易通行證網域），
+    // 因此登入網域列為可選權限，使用者授權後才一併查詢
+    const filters = [{ domain: "swordofjustice.com" }];
+    if (result.extended) filters.push({ domain: "163.com" }, { domain: "easebar.com" });
+
+    const seen = new Set();
+    for (const filter of filters) {
+        try {
+            const cookies = await chrome.cookies.getAll(filter);
+            for (const c of cookies || []) {
+                const id = `${c.domain}|${c.name}`;
+                if (seen.has(id)) continue;
+                seen.add(id);
+                const jwt = decodeJwtTimes(c.value);
+                result.cookies.push({
+                    name: c.name,
+                    domain: c.domain,
+                    cookieExpHours: c.expirationDate ? hoursFrom(c.expirationDate) : null,
+                    jwtExpHours: jwt ? hoursFrom(jwt.exp) : null,
+                    jwtLifetimeHours: jwt?.iat ? Number(((jwt.exp - jwt.iat) / 3600).toFixed(1)) : null
+                });
+            }
+        } catch (e) {
+            await diag("auth_probe_fail", `${tag} / ${filter.domain}：${e?.message || e}`);
         }
-    } catch (e) {
-        await diag("auth_probe_fail", `${tag}：${e?.message || e}`);
     }
 
     // 保留上次由 content script 掃出的 web storage 結果（cookie 單獨查詢時不清掉）
@@ -697,6 +722,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             sendResponse({ status: "ok", result });
         })();
         return true;
+    } else if (msg.type === "getLoginOrigins") {
+        // 由 background 統一持有清單，popup 不另存一份，避免兩處漂移
+        sendResponse({ origins: LOGIN_ORIGINS });
     } else if (msg.type === "checkUpdate") {
         (async () => sendResponse(await checkUpdate(!!msg.force)))();
         return true;

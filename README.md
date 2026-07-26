@@ -4,7 +4,7 @@
 
 **Chrome / Edge 擴充套件 · 每天定時自動領取《逆水寒》會員中心禮包與每週簽到**
 
-![version](https://img.shields.io/badge/版本-v3.3-4caf50?style=flat-square)
+![version](https://img.shields.io/badge/版本-v3.4-4caf50?style=flat-square)
 ![license](https://img.shields.io/badge/授權-自訂非商業-ed8936?style=flat-square)
 ![chrome](https://img.shields.io/badge/Chrome-支援-4285F4?style=flat-square&logo=googlechrome&logoColor=white)
 ![edge](https://img.shields.io/badge/Edge-支援-0078D7?style=flat-square&logo=microsoftedge&logoColor=white)
@@ -59,6 +59,8 @@
 > 官網的登入有時效，過期後會自動登出。v3.0 起偵測到未登入時會跳**桌面通知**並在記錄頁顯示橫幅，點一下即可開啟官網重新登入，不必等到發現漏領才察覺。
 >
 > 想知道登入還能撐多久：**設定分頁 → 登入狀態**，開啟就會顯示憑證的剩餘有效時間與簽發後的總有效期。只解出到期時間，**不讀取也不儲存憑證內容**。
+>
+> 官網網域下讀不到登入 cookie（登入態存在網易通行證網域）。若想查出真正的登入到期時間，該區塊會出現一顆授權按鈕，**按下才會向瀏覽器申請讀取 `163.com` / `easebar.com` 的權限**——安裝時不會索取，也可隨時在瀏覽器的擴充功能設定收回。
 
 <br>
 
