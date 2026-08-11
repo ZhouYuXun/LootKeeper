@@ -1,6 +1,6 @@
 {
   "name": "lootkeeper",
-  "version": "3.5.0",
+  "version": "3.6.0",
   "private": true,
   "description": "《逆水寒》官網每日禮包與簽到自動領取的 Chrome / Edge 擴充功能",
   "type": "module",

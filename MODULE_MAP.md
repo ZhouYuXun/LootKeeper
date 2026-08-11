@@ -22,7 +22,7 @@
 | `manifest.json` | MV3 宣告。每個目標一組 `content_scripts`，`js` 順序固定為 `targets.js → claim-core.js → claim-<id>.js` |
 | `background.js` | Service worker：每日排程、序列化領取佇列、分頁生命週期、診斷日誌、登入偵測與通知、登入時效量測、版本檢查、v2→v3 資料遷移 |
 | `claim-vip.js` | VIP 禮包流程（`.gift-card--claimable` / `--claimed` / `--locked`） |
-| `claim-checkin.js` | 每週簽到流程（`.btn-checkin` / `.btn-checkin.un`、`.day.yqd` / `.ygq`） |
+| `claim-checkin.js` | 週三小確幸（每週簽到）流程（`.btn-checkin` / `.btn-checkin.un`、`.day.yqd` / `.ygq`） |
 | `popup.html` / `popup.js` | 控制面板：記錄、目標開關、登入狀態、排程設定、診斷面板 |
 
 ## 守門與工具

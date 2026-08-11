@@ -4,7 +4,7 @@
 
 **Chrome / Edge 擴充套件 · 每天自動領取《逆水寒》的禮包與簽到**
 
-![version](https://img.shields.io/badge/版本-v3.5-4caf50?style=flat-square)
+![version](https://img.shields.io/badge/版本-v3.6-4caf50?style=flat-square)
 ![license](https://img.shields.io/badge/授權-自訂非商業-ed8936?style=flat-square)
 ![chrome](https://img.shields.io/badge/Chrome-支援-4285F4?style=flat-square&logo=googlechrome&logoColor=white)
 ![edge](https://img.shields.io/badge/Edge-支援-0078D7?style=flat-square&logo=microsoftedge&logoColor=white)
@@ -29,7 +29,7 @@
 </thead>
 <tbody>
 <tr><td align="center"><b>VIP 禮包</b></td><td align="center">會員中心的每日禮包，逐一領完</td></tr>
-<tr><td align="center"><b>每週簽到</b></td><td align="center">當天那一格，錯過即過期，所以每天都去</td></tr>
+<tr><td align="center"><b>週三小確幸</b></td><td align="center">官網福利頁的每週簽到，當天那一格錯過即過期，所以每天都去</td></tr>
 </tbody>
 </table>
 
@@ -158,7 +158,7 @@
 </tr>
 </thead>
 <tbody>
-<tr><td align="center">領取目標</td><td align="center">全部開啟</td><td align="center">個別開關 VIP 禮包 / 每週簽到，並顯示各自今日狀態</td></tr>
+<tr><td align="center">領取目標</td><td align="center">全部開啟</td><td align="center">個別開關 VIP 禮包 / 週三小確幸，並顯示各自今日狀態</td></tr>
 <tr><td align="center">登入狀態</td><td align="center">—</td><td align="center">顯示登入能維持多久（依實際觀測累積），開啟面板即自動查詢</td></tr>
 <tr><td align="center">每日自動領取</td><td align="center">開啟</td><td align="center">關閉後僅保留手動領取</td></tr>
 <tr><td align="center">每日執行時間</td><td align="center">05:10</td><td align="center">改完按「儲存」立即重新排程</td></tr>
@@ -336,7 +336,7 @@ git clone https://github.com/ZhouYuXun/LootKeeper.git
 <details>
 <summary><b>功能特性一覽</b></summary>
 
-- 🎯 **多目標** — VIP 禮包與每週簽到依序領取，可個別開關
+- 🎯 **多目標** — VIP 禮包與週三小確幸依序領取，可個別開關
 - 🔒 **登入偵測** — 過期時跳通知與橫幅，並可查看憑證剩餘時效
 - ⏰ **定時領取** — 每天在設定時間自動開頁領取
 - 🔄 **漏領補救** — 排程時瀏覽器沒開，下次啟動自動補領當天

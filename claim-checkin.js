@@ -1,5 +1,5 @@
-// ── 每週簽到流程 ──────────────────────────────────────
-// 頁面：https://www.swordofjustice.com/h5/20260722/officialwebfasthmt/#/
+// ── 週三小確幸（每週簽到）流程 ────────────────────────
+// 頁面：https://www.swordofjustice.com/h5/20260722/officialwebfasthmt/#/（官網福利 → 週三小確幸）
 //
 // 每日一格、當天沒領即過期（Vue 來源：class {yqd: status, ygq: weekDay > checkin_index && !status}）
 // 因此掛在每日排程上執行即可，不需要獨立的每週鬧鐘。

@@ -24,8 +24,9 @@ const TARGETS = [
         ready: ".privilege-grid, .privilege-item"
     },
     {
+        // 官網路徑：福利 → 週三小確幸（活動制簽到頁，改版時 url/match 需跟著更新）
         id: "checkin",
-        name: "每週簽到",
+        name: "週三小確幸",
         url: "https://www.swordofjustice.com/h5/20260722/officialwebfasthmt/#/",
         match: "https://www.swordofjustice.com/h5/20260722/*",
         loggedOut: ".part-loginInfo.nologin",

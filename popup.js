@@ -552,8 +552,12 @@ function renderAuthProbe(probe) {
         headline = '<span class="auth-warn">找不到可解出到期時間的憑證</span>'
             + '<div class="auth-sub">登入態可能是伺服器端 session，或憑證不在本站網域</div>';
     } else {
-        // 以最早到期者作為結論：那才是實際會斷線的時間
-        const soonest = jwts.reduce((a, b) => (a.exp <= b.exp ? a : b));
+        // 以最早到期者作為結論：那才是實際會斷線的時間。
+        // 但網站會把舊活動的過期 token 留在 localStorage（實測留了 49 天），
+        // 只要還有未過期的憑證，就不拿已過期的殘留當結論嚇人
+        const valid = jwts.filter(i => i.exp >= 0);
+        const pool = valid.length > 0 ? valid : jwts;
+        const soonest = pool.reduce((a, b) => (a.exp <= b.exp ? a : b));
         const cls = soonest.exp < 0 ? "auth-bad" : soonest.exp < 6 ? "auth-warn" : "auth-ok";
         headline = `最早到期：<span class="${cls}">${fmtHours(soonest.exp)}</span>`
             + (soonest.life !== null ? `　·　有效期 ${fmtHours(soonest.life)}` : "")

@@ -241,7 +241,9 @@ async function checkUpdate(force = false) {
         const remote = remoteManifest.version || "";
         const hasUpdate = isNewer(remote, local);
 
-        const next = { remote, hasUpdate, checkedAt: Date.now(), error: null };
+        // notifiedFor 必須帶著走：漏掉的話這次 set 就把「已通知過」的記錄洗掉，
+        // 同一版本每隔一次檢查（約 40 小時）就會重複通知
+        const next = { remote, hasUpdate, checkedAt: Date.now(), error: null, notifiedFor: info.notifiedFor };
         await chrome.storage.local.set({ updateInfo: next });
         await setUpdateBadge(hasUpdate);
 
