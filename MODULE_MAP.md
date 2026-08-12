@@ -93,7 +93,8 @@ v3.0 新增簽到時就撞在這裡，所以第 4 步會直接擋下。
 | DOM id / CSS class | id 用 camelCase；class 用 kebab-case | `claimBtn` / `.auth-headline` |
 | UI 與文件的英文專名 | 首字大寫（縮寫全大寫） | Cookie、App、JWT、Edge |
 
-> `package.json` 的 `lootkeeper` 為 npm 強制小寫，與 repo 名 `LootKeeper` 的差異無法避免。
+> repo 與 `package.json` 名稱統一 kebab-case（`loot-keeper`，對齊使用者其他專案的 repo 命名風格）；
+> 品牌顯示名 `LootKeeper` 屬「UI 英文專名」域（同 Stockly ↔ stockly-site 的關係），兩者並存不是不一致。
 
 ## 安全界線
 

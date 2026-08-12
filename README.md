@@ -4,7 +4,7 @@
 
 **Chrome / Edge 擴充套件 · 每天自動領取《逆水寒》的禮包與簽到**
 
-![version](https://img.shields.io/badge/版本-v3.6.1-4caf50?style=flat-square)
+![version](https://img.shields.io/badge/版本-v3.6.2-4caf50?style=flat-square)
 ![license](https://img.shields.io/badge/授權-自訂非商業-ed8936?style=flat-square)
 ![chrome](https://img.shields.io/badge/Chrome-支援-4285F4?style=flat-square&logo=googlechrome&logoColor=white)
 ![edge](https://img.shields.io/badge/Edge-支援-0078D7?style=flat-square&logo=microsoftedge&logoColor=white)
@@ -45,7 +45,7 @@
 
 ### Step 1 · 安裝擴充套件
 
-從 [GitHub 頁面](https://github.com/ZhouYuXun/LootKeeper) 點綠色「**Code**」→ **Download ZIP**，解壓縮到一個**不會被刪掉**的位置（例如 `Documents\LootKeeper`）。
+從 [GitHub 頁面](https://github.com/ZhouYuXun/loot-keeper) 點綠色「**Code**」→ **Download ZIP**，解壓縮到一個**不會被刪掉**的位置（例如 `Documents\loot-keeper`）。
 
 <br>
 
@@ -203,7 +203,7 @@
 擴充套件無法自我更新——瀏覽器不允許它改寫自己的檔案，而自架更新伺服器的做法在 Windows 上已被 Chrome 封鎖。但若安裝資料夾是 clone 來的，檔案可以自動保持最新：
 
 ```bash
-git clone https://github.com/ZhouYuXun/LootKeeper.git
+git clone https://github.com/ZhouYuXun/loot-keeper.git
 ```
 
 再用 Windows 工作排程器每天執行一次 `git -C <資料夾> pull`。**未封裝的擴充套件在瀏覽器啟動時會重新讀取原資料夾**，所以下次開瀏覽器就是新版，連「重新載入」都不用按。
@@ -367,6 +367,6 @@ git clone https://github.com/ZhouYuXun/LootKeeper.git
 
 <div align="center">
 
-**LootKeeper** · 作者：墨染楓（瑤光聽雪） · [意見回饋](https://github.com/ZhouYuXun/LootKeeper/issues)
+**LootKeeper** · 作者：墨染楓（瑤光聽雪） · [意見回饋](https://github.com/ZhouYuXun/loot-keeper/issues)
 
 </div>

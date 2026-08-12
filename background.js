@@ -200,7 +200,7 @@ function jwtLifetimeText(item) {
 // ── 版本更新檢查 ──────────────────────────────────────
 // 自架 CRX 自動更新在 Windows 上已被 Chrome 封死（2024 起逐步收緊），
 // 因此更新一律是「偵測到新版 → 告知使用者」，實際更新由使用者操作。
-const REMOTE_MANIFEST = "https://raw.githubusercontent.com/ZhouYuXun/LootKeeper/main/manifest.json";
+const REMOTE_MANIFEST = "https://raw.githubusercontent.com/ZhouYuXun/loot-keeper/main/manifest.json";
 const UPDATE_CHECK_INTERVAL_MS = 20 * 60 * 60 * 1000; // 20 小時，略短於每日排程
 
 function parseVer(v) {
