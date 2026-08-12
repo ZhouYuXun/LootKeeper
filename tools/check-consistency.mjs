@@ -101,7 +101,9 @@ for (const p of new Set(iconPaths)) {
 const pkg = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
 const readme = readFileSync(join(ROOT, "README.md"), "utf8");
 
-if (!pkg.version.startsWith(manifest.version + ".")) {
+// manifest 可為 2 段（3.6）或 3 段（3.6.1）；package.json 受 npm 限制固定 3 段，
+// 因此「完全相等」或「manifest 是 package 的前綴」都算一致
+if (pkg.version !== manifest.version && !pkg.version.startsWith(manifest.version + ".")) {
     fail(`package.json 版本 ${pkg.version} 與 manifest ${manifest.version} 不一致`);
 }
 

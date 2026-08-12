@@ -1,7 +1,7 @@
 importScripts("targets.js");
 
 const FALLBACK_CLOSE_MS = 35000;
-const DEFAULT_MAX_LOG = 6;
+const DEFAULT_CLAIM_LOG_MAX = 6;
 
 // ── 模組層級領取狀態（SW 重啟後重設，不可依賴持久性） ──────────────
 // 佇列本身存在 chrome.storage.session，SW 重啟後仍可續跑
@@ -187,8 +187,8 @@ async function probeAuth(tag, quiet = false) {
     const summary = jwtHit
         ? `${jwtHit.name} JWT 剩 ${jwtHit.jwtExpHours}h（有效期 ${jwtLifetimeText(jwtHit)}）`
         : result.cookies.length === 0
-            ? `無 cookie（登入網域${result.extended ? "已授權" : "未授權"}）掃描：${scanText}`
-            : `${result.cookies.length} 個 cookie 但無 JWT｜掃描：${scanText}`;
+            ? `無 Cookie（登入網域${result.extended ? "已授權" : "未授權"}）掃描：${scanText}`
+            : `${result.cookies.length} 個 Cookie 但無 JWT｜掃描：${scanText}`;
     await diag("auth_probe", `${tag}：${summary}`);
     return result;
 }
@@ -381,7 +381,7 @@ async function _scheduleDailyInner() {
 
 function saveLog(entry) {
     chrome.storage.local.get(["claimLog", "maxLogEntries"], (data) => {
-        const max = data.maxLogEntries !== undefined ? data.maxLogEntries : DEFAULT_MAX_LOG;
+        const max = data.maxLogEntries !== undefined ? data.maxLogEntries : DEFAULT_CLAIM_LOG_MAX;
         const logs = data.claimLog || [];
         logs.unshift(entry);
         if (logs.length > max) logs.length = max;

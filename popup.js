@@ -573,14 +573,14 @@ function renderAuthProbe(probe) {
             escapeHtml(i.isCookie && i.domain ? i.domain.replace(/^\./, "") + " " : "")
         }${escapeHtml(shortKey(i.label))}</span>
         <span class="auth-val">${i.exp === null || i.exp === undefined ? "無到期資訊" : fmtHours(i.exp)}${
-            i.isCookie && i.cookieExp !== null ? `<span class="auth-dim"> / cookie ${fmtHours(i.cookieExp)}</span>` : ""
+            i.isCookie && i.cookieExp !== null ? `<span class="auth-dim"> / Cookie ${fmtHours(i.cookieExp)}</span>` : ""
         }</span>
       </div>`).join("");
 
     // 掃了哪些網域、各拿到幾筆——區分「沒授權」與「授權了但真的沒有」
     const note = probe.cookies.length > 0 ? "" : probe.extended
-        ? '<div class="auth-sub auth-warn-text">已授權登入網域但仍讀不到任何 cookie，此站的登入態不使用 cookie</div>'
-        : '<div class="auth-sub auth-warn-text">未讀到本站 cookie，可授權登入網域再試</div>';
+        ? '<div class="auth-sub auth-warn-text">已授權登入網域但仍讀不到任何 Cookie，此站的登入態不使用 Cookie</div>'
+        : '<div class="auth-sub auth-warn-text">未讀到本站 Cookie，可授權登入網域再試</div>';
 
     // 尚未授權登入網域時，把申請按鈕顯示出來
     document.getElementById("grantLoginDomainBtn").style.display = probe.extended ? "none" : "";

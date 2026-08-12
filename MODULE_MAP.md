@@ -75,6 +75,26 @@ v3.0 新增簽到時就撞在這裡，所以第 4 步會直接擋下。
 `lkAuthorizedTab`（授權分頁 id）、`lkActiveTarget`（當前目標）、`lkQueue`（剩餘佇列）。
 放 session 是為了讓 service worker 被回收重啟後，領取佇列仍能接續執行。
 
+## 命名慣例
+
+各命名域遵循 web 生態的各自標準，**域內一致、跨域不同是刻意的**：
+
+| 命名域 | 慣例 | 例 |
+| --- | --- | --- |
+| 程式檔名 | kebab-case 小寫；說明文件全大寫 | `claim-core.js`、`MODULE_MAP.md` |
+| 函式 / 變數 | camelCase；`_` 前綴 = 模組內私有 | `runClaim`、`_finishClaim` |
+| 常數 | UPPER_SNAKE；主題在前、量詞（`MAX` / `MS`）收尾；`DEFAULT_` 前綴 = 可被設定覆寫的預設值 | `DIAG_LOG_MAX`、`DEFAULT_CLAIM_LOG_MAX` |
+| `storage.local` 鍵 | camelCase 無前綴。**改名即資料不相容，勿動**（同 `TARGETS` 的 `id`） | `lastClaim` |
+| `storage.session` 鍵 | `lk` 前綴 camelCase | `lkQueue` |
+| runtime 訊息 `type` | camelCase | `manualClaim` |
+| 診斷事件 `type` | snake_case | `alarm_fired` |
+| alarm 名稱 | camelCase | `dailyClaim` |
+| notification id | `lk-` 前綴 kebab-case | `lk-update` |
+| DOM id / CSS class | id 用 camelCase；class 用 kebab-case | `claimBtn` / `.auth-headline` |
+| UI 與文件的英文專名 | 首字大寫（縮寫全大寫） | Cookie、App、JWT、Edge |
+
+> `package.json` 的 `lootkeeper` 為 npm 強制小寫，與 repo 名 `LootKeeper` 的差異無法避免。
+
 ## 安全界線
 
 - **憑證值不落地**：cookie 與 token 只解出 `exp` / `iat` 兩個時間欄位，不寫入 storage、不寫入診斷記錄、不顯示於畫面

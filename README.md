@@ -4,7 +4,7 @@
 
 **Chrome / Edge 擴充套件 · 每天自動領取《逆水寒》的禮包與簽到**
 
-![version](https://img.shields.io/badge/版本-v3.6-4caf50?style=flat-square)
+![version](https://img.shields.io/badge/版本-v3.6.1-4caf50?style=flat-square)
 ![license](https://img.shields.io/badge/授權-自訂非商業-ed8936?style=flat-square)
 ![chrome](https://img.shields.io/badge/Chrome-支援-4285F4?style=flat-square&logo=googlechrome&logoColor=white)
 ![edge](https://img.shields.io/badge/Edge-支援-0078D7?style=flat-square&logo=microsoftedge&logoColor=white)
@@ -300,9 +300,9 @@ git clone https://github.com/ZhouYuXun/LootKeeper.git
 
 <br>
 
-**次要來源是憑證本身**：若登入憑證是 JWT，可以直接解出到期時間。但實測這個站的登入態不放在官網網域的 cookie 裡，找到的只有 localStorage 中的角色 token。若登入態是不透明的 session ID，它身上就沒有編碼到期時間，這條路走不通。
+**次要來源是憑證本身**：若登入憑證是 JWT，可以直接解出到期時間。但實測這個站的登入態不放在官網網域的 Cookie 裡，找到的只有 localStorage 中的角色 token。若登入態是不透明的 session ID，它身上就沒有編碼到期時間，這條路走不通。
 
-「登入狀態」區塊會提供一顆授權按鈕，可申請讀取 `163.com` / `easebar.com` 以擴大搜尋範圍。安裝時不會索取這個權限，也可隨時在瀏覽器的擴充功能設定收回；若授權後仍顯示讀不到 cookie，代表這條路對此站無效，收回即可。
+「登入狀態」區塊會提供一顆授權按鈕，可申請讀取 `163.com` / `easebar.com` 以擴大搜尋範圍。安裝時不會索取這個權限，也可隨時在瀏覽器的擴充功能設定收回；若授權後仍顯示讀不到 Cookie，代表這條路對此站無效，收回即可。
 
 > 兩種方式都只取出時間，不讀取、不儲存、不顯示憑證內容。
 
